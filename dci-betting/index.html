@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Fantasy DCI - Draft and trade drum corps sections, compete with friends in fantasy leagues based on real DCI scores.">
+    <meta name="keywords" content="DCI, Drum Corps International, fantasy, draft, trading, marching band">
+    <title>Fantasy DCI - Draft Your Dream Corps</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">Fantasy DCI</div>
+                <div id="leagueInfo"></div>
+                <nav class="main-nav">
+                    <button class="nav-item active" id="navDraft">Draft</button>
+                    <button class="nav-item" id="navMyTeam">My Team</button>
+                    <button class="nav-item" id="navTrade">Trade</button>
+                    <button class="nav-item" id="navStandings">Standings</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+
+            <!-- League Setup View -->
+            <section class="view" id="leagueSetupView">
+                <div class="league-setup-container">
+                    <h1>Create Your League</h1>
+                    <p class="league-subtitle">Set up your fantasy DCI league to begin drafting</p>
+
+                    <div class="league-form">
+                        <div class="form-group">
+                            <label class="form-label" for="leagueNameInput">League Name</label>
+                            <input type="text" id="leagueNameInput" class="form-input" placeholder="Enter league name"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="playerCountSelect">Number of Players</label>
+                            <select id="playerCountSelect" class="form-select">
+                                <option value="5">5 Players</option>
+                                <option value="6">6 Players</option>
+                            </select>
+                            <p class="form-hint">Minimum 5 players, maximum 6 players</p>
+                        </div>
+
+                        <button class="btn btn-primary btn-large" id="createLeagueBtn">
+                            Create League & Start Draft
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Draft View -->
+            <section class="view" id="draftView">
+                <div class="view-header">
+                    <h1>Draft Board</h1>
+                    <div class="draft-status" id="draftStatus">
+                        <h3>Ready to Draft?</h3>
+                        <p>Click Start Draft to begin building your team!</p>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-large" id="startDraftBtn">
+                    Start Draft
+                </button>
+
+                <div class="draft-filters">
+                    <div class="filter-group">
+                        <label class="filter-label">Filter by Corps:</label>
+                        <select id="corpsFilter" class="filter-select">
+                            <option value="all">All Corps</option>
+                            <option value="Blue Devils">Blue Devils</option>
+                            <option value="Santa Clara Vanguard">Santa Clara Vanguard</option>
+                            <option value="Bluecoats">Bluecoats</option>
+                            <option value="Carolina Crown">Carolina Crown</option>
+                            <option value="The Cavaliers">The Cavaliers</option>
+                            <option value="Boston Crusaders">Boston Crusaders</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">Filter by Section:</label>
+                        <select id="sectionFilter" class="filter-select">
+                            <option value="all">All Sections</option>
+                            <option value="Brass">🎺 Brass</option>
+                            <option value="Percussion">🥁 Percussion</option>
+                            <option value="Color Guard">🎭 Color Guard</option>
+                            <option value="General Effect">✨ General Effect</option>
+                            <option value="Visual Performance">💫 Visual Performance</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="captions-grid" id="captionsGrid">
+                    <!-- Caption cards will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <!-- My Team View -->
+            <section class="view" id="myTeamView" style="display: none;">
+                <div class="view-header">
+                    <h1>My Team</h1>
+                    <div class="team-score-display">
+                        <span class="score-label">Total Score</span>
+                        <span class="score-value" id="teamScore">0.0</span>
+                    </div>
+                </div>
+
+                <div class="my-roster" id="myRoster">
+                    <!-- Roster slots will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <!-- Trade View -->
+            <section class="view" id="tradeView" style="display: none;">
+                <div class="view-header">
+                    <h1>Trade Center</h1>
+                </div>
+
+                <div class="trade-list" id="tradeList">
+                    <!-- Trade proposals will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <!-- Standings View -->
+            <section class="view" id="standingsView" style="display: none;">
+                <div class="view-header">
+                    <h1>League Standings</h1>
+                </div>
+
+                <div class="standings-container" id="standingsTable">
+                    <!-- Standings table will be dynamically inserted here -->
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Caption Detail Modal -->
+    <div class="modal-overlay" id="captionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalCorpsName">Corps Name</h3>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="caption-detail">
+                    <div class="detail-row">
+                        <span class="detail-label">Section</span>
+                        <span class="detail-value" id="modalSection">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Score</span>
+                        <span class="detail-value score-highlight" id="modalScore">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Owner</span>
+                        <span class="detail-value" id="modalOwner">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="draftCaptionBtn">Draft This Caption</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+
+</html>

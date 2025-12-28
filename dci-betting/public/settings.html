@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - Marching Fantasy League</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo-link">
+                    <div class="logo">Marching Fantasy League</div>
+                </a>
+                <!-- Auth section will be inserted here by nav.js -->
+            </div>
+        </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <div class="settings-container">
+                <h1>Account Settings</h1>
+
+                <div class="settings-section">
+                    <h2>Profile Picture</h2>
+                    <div class="profile-picture-editor">
+                        <div class="current-avatar">
+                            <img id="currentAvatar" src="/default-avatar.png" alt="Profile Picture"
+                                class="settings-avatar">
+                        </div>
+                        <div class="avatar-controls">
+                            <input type="text" id="profilePictureUrl" class="form-input" placeholder="Enter image URL">
+                            <button class="btn btn-primary" id="updateAvatarBtn">Update Picture</button>
+                        </div>
+                        <p class="form-hint">Enter a URL to an image (e.g., https://example.com/avatar.jpg)</p>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2>Account Information</h2>
+                    <div class="account-info">
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value" id="userEmail">Loading...</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Member Since:</span>
+                            <span class="info-value" id="createdAt">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2>Password</h2>
+                    <button class="btn btn-secondary">Change Password</button>
+                    <p class="form-hint">Coming soon</p>
+                </div>
+
+                <div class="settings-section danger-zone">
+                    <h2>Danger Zone</h2>
+                    <button class="btn btn-danger">Delete Account</button>
+                    <p class="form-hint">This action cannot be undone</p>
+                </div>
+
+                <!-- Leave League Section -->
+                <div class="settings-section" id="leagueSection" style="display: none;">
+                    <h2>League Management</h2>
+                    <div class="form-group">
+                        <label class="form-label">Current League</label>
+                        <p class="league-name-display" id="currentLeagueName">Not in a league</p>
+                    </div>
+                    <div class="warning-box">
+                        <p><strong>⚠️ Warning:</strong> Leaving the league will:</p>
+                        <ul>
+                            <li>Remove you from the league permanently</li>
+                            <li>Release all your drafted picks back to available pool</li>
+                            <li>Delete your Fantasy Corp from this league</li>
+                        </ul>
+                        <p>You'll need a new invite link to rejoin.</p>
+                    </div>
+                    <button class="btn btn-danger" id="leaveLeagueBtn">
+                        Leave League
+                    </button>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="btn btn-primary" id="saveSettingsBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="api.js"></script>
+    <script src="utils/avatar.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        // Load user settings
+        async function loadSettings() {
+            try {
+                const user = await api.verifySession();
+                if (!user) {
+                    window.location.href = '/auth';
+                    return;
+                }
+
+                // Display user data
+                document.getElementById('userEmail').textContent = user.email;
+
+                // Use generated avatar if no custom picture
+                const avatarUrl = (user.profile_picture_url && user.profile_picture_url !== '/default-avatar.png')
+                    ? user.profile_picture_url
+                    : generateDefaultAvatar(user.username, 120);
+
+                document.getElementById('currentAvatar').src = avatarUrl;
+                document.getElementById('profilePictureUrl').value = user.profile_picture_url || '';
+
+                // TODO: Format created date when we have it
+                document.getElementById('createdAt').textContent = 'Recently';
+
+                // Try to load league info
+                try {
+                    const leaguesResponse = await api.request('/leagues/my');
+                    if (leaguesResponse.leagues && leaguesResponse.leagues.length > 0) {
+                        const league = leaguesResponse.leagues[0];
+                        const leagueNameDisplay = document.getElementById('currentLeagueName');
+                        const leagueSection = document.getElementById('leagueSection');
+
+                        if (leagueNameDisplay) {
+                            leagueNameDisplay.textContent = league.name;
+                        }
+                        if (leagueSection) {
+                            leagueSection.style.display = 'block';
+                        }
+                    }
+                } catch (error) {
+                    console.log('No league data:', error);
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+                window.location.href = '/auth';
+            }
+        }
+
+        // Update profile picture
+        document.getElementById('updateAvatarBtn').addEventListener('click', async () => {
+            const url = document.getElementById('profilePictureUrl').value;
+
+            if (!url) {
+                alert('Please enter a valid image URL');
+                return;
+            }
+
+            try {
+                await api.updateProfilePicture(url);
+                document.getElementById('currentAvatar').src = url;
+
+                // Refresh navigation to update avatar
+                if (window.nav) {
+                    await window.nav.refreshUser();
+                }
+
+                alert('Profile picture updated successfully!');
+            } catch (error) {
+                alert('Failed to update profile picture: ' + error.message);
+            }
+        });
+
+        // Leave league handler
+        const leaveLeagueBtn = document.getElementById('leaveLeagueBtn');
+        if (leaveLeagueBtn) {
+            leaveLeagueBtn.addEventListener('click', async () => {
+                if (!confirm('Are you sure you want to leave this league? This action cannot be undone. All your drafted picks will be released.')) {
+                    return;
+                }
+
+                try {
+                    const leaguesResponse = await api.request('/leagues/my');
+                    if (leaguesResponse.leagues && leaguesResponse.leagues.length > 0) {
+                        const leagueId = leaguesResponse.leagues[0].id;
+
+                        await api.request(`/leagues/${leagueId}/leave`, {
+                            method: 'POST'
+                        });
+
+                        alert('Successfully left the league');
+                        window.location.href = '/app';
+                    }
+                } catch (error) {
+                    alert('Failed to leave league: ' + error.message);
+                }
+            });
+        }
+
+        // Save settings handler
+        const saveBtn = document.getElementById('saveSettingsBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const newPassword = document.getElementById('newPasswordInput')?.value;
+                const confirmPassword = document.getElementById('confirmPasswordInput')?.value;
+
+                if (newPassword || confirmPassword) {
+                    if (newPassword !== confirmPassword) {
+                        alert('Passwords do not match');
+                        return;
+                    }
+
+                    if (newPassword.length < 8) {
+                        alert('Password must be at least 8 characters');
+                        return;
+                    }
+
+                    try {
+                        await api.request('/auth/change-password', {
+                            method: 'POST',
+                            body: JSON.stringify({ newPassword })
+                        });
+                        alert('Password updated successfully');
+                    } catch (error) {
+                        alert('Failed to update password: ' + error.message);
+                    }
+                }
+            });
+        }
+
+        // Load settings on page load
+        loadSettings();
+    </script>
+</body>
+
+</html>

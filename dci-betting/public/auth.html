@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fantasy DCI - Build your dream drum corps team and compete with friends">
+    <title>Marching Fantasy League - Login or Sign Up</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-xl);
+        }
+
+        .auth-card {
+            background: var(--color-surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-2xl);
+            max-width: 450px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .auth-title {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-sm);
+            background: var(--color-accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-subtitle {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .auth-form {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--color-error);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-md);
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .auth-links {
+            text-align: center;
+            margin-top: var(--spacing-xl);
+        }
+
+        .auth-link {
+            color: var(--color-accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color var(--transition-base);
+        }
+
+        .auth-link:hover {
+            color: var(--color-accent-secondary);
+        }
+
+        .password-requirements {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-sm);
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+
+        .password-requirements ul {
+            list-style: none;
+            margin: 0;
+            padding-left: var(--spacing-md);
+        }
+
+        .password-requirements li::before {
+            content: "•";
+            color: var(--color-accent-primary);
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+
+        .auth-logo-link {
+            display: block;
+            text-align: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .auth-logo {
+            height: 60px;
+            /* Adjust as needed */
+            width: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <a href="/" class="auth-logo-link">
+                    <img src="assets/logo.svg" alt="Fantasy DCI Logo" class="auth-logo">
+                </a>
+                <h1 class="auth-title" id="authTitle">Welcome to Marching Fantasy League</h1>
+                <p class="auth-subtitle" id="authSubtitle">Sign in to start drafting</p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- Login Form -->
+            <form class="auth-form" id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" class="form-input" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-input" placeholder="Enter password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large">
+                    Log In
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form class="auth-form" id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label" for="registerUsername">Username</label>
+                    <input type="text" id="registerUsername" class="form-input" placeholder="Choose a username"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" class="form-input" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" class="form-input" placeholder="Create password"
+                        required>
+                    <div class="password-requirements">
+                        <strong>Password requirements:</strong>
+                        <ul>
+                            <li>At least 12 characters long</li>
+                            <li>Contains at least one number</li>
+                            <li>Contains at least one special character</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="registerConfirmPassword">Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" class="form-input"
+                        placeholder="Confirm password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large">
+                    Create Account
+                </button>
+            </form>
+
+            <div class="auth-links">
+                <p id="toggleText">
+                    Don't have an account?
+                    <a href="#" class="auth-link" id="toggleLink">Sign up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const toggleLink = document.getElementById('toggleLink');
+        const toggleText = document.getElementById('toggleText');
+        const authTitle = document.getElementById('authTitle');
+        const authSubtitle = document.getElementById('authSubtitle');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let isLoginMode = true;
+
+        // Toggle between login and register
+        toggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+
+            if (isLoginMode) {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                authTitle.textContent = 'Welcome to Fantasy DCI';
+                authSubtitle.textContent = 'Sign in to start drafting';
+                toggleText.innerHTML = 'Don\'t have an account? <a href="#" class="auth-link" id="toggleLink">Sign up</a>';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                authTitle.textContent = 'Join Marching Fantasy League';
+                authSubtitle.textContent = 'March. Draft. Win.';
+                toggleText.innerHTML = 'Already have an account? <a href="#" class="auth-link" id="toggleLink">Log in</a>';
+            }
+
+            // Re-attach event listener
+            document.getElementById('toggleLink').addEventListener('click', arguments.callee);
+            hideError();
+        });
+
+        // Login handler
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await api.login(email, password);
+
+                // Check for redirect parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect');
+                window.location.href = redirect || '/';
+            } catch (error) {
+                showError(error.message || 'Login failed');
+            }
+        });
+
+        // Register handler
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const username = document.getElementById('registerUsername').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            try {
+                await api.register(email, password, username);
+
+                // Check for redirect parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect');
+                window.location.href = redirect || '/';
+            } catch (error) {
+                showError(error.message || 'Registration failed');
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+    </script>
+</body>
+
+</html>

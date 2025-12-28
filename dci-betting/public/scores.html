@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corps Scores - Marching Fantasy League</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo-link">
+                    <div class="logo">Marching Fantasy League</div>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="page-header">
+                <h1>DCI World Class Scores</h1>
+                <p>View performance data and statistics from all World Class drum corps</p>
+            </div>
+
+            <div class="scores-controls">
+                <div class="filter-group">
+                    <label class="filter-label">Sort by:</label>
+                    <select id="sortSelect" class="filter-select">
+                        <option value="name">Corps Name (A-Z)</option>
+                        <option value="score">Total Score (Highest)</option>
+                        <option value="date">Most Recent</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="scores-table-container">
+                <table class="scores-table">
+                    <thead>
+                        <tr>
+                            <th>Corps</th>
+                            <th>Total</th>
+                            <th>Brass</th>
+                            <th>Percussion</th>
+                            <th>Guard</th>
+                            <th>GE</th>
+                            <th>Visual</th>
+                            <th>Competitions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoresTableBody">
+                        <tr>
+                            <td colspan="8" class="loading-cell">Loading scores...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="api.js"></script>
+    <script src="utils/avatar.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        let corpsData = [];
+
+        async function loadScores() {
+            try {
+                const sort = document.getElementById('sortSelect').value;
+                const response = await api.request(`/stats/corps?sort=${sort}`);
+                corpsData = response.corps;
+                renderTable();
+            } catch (error) {
+                document.getElementById('scoresTableBody').innerHTML =
+                    `<tr><td colspan="8" class="error-cell">Failed to load scores: ${error.message}</td></tr>`;
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('scoresTableBody');
+
+            if (corpsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">No data available</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = corpsData.map(corps => `
+        <tr>
+          <td class="corps-name">${corps.corps_name}</td>
+          <td class="score-total">${corps.total_score}</td>
+          <td>${corps.avg_brass}</td>
+          <td>${corps.avg_percussion}</td>
+          <td>${corps.avg_guard}</td>
+          <td>${corps.avg_ge}</td>
+          <td>${corps.avg_visual}</td>
+          <td>${corps.competitions_count}</td>
+        </tr>
+      `).join('');
+        }
+
+        document.getElementById('sortSelect').addEventListener('change', loadScores);
+
+        loadScores();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="March. Draft. Win. - Join the ultimate DCI fantasy league experience">
+    <title>Marching Fantasy League - March. Draft. Win.</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header landing-header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo-link">
+                    <div class="logo">Marching Fantasy League</div>
+                </a>
+
+                <!-- Auth Box for Non-Logged In Users -->
+                <div class="auth-box" id="authBox">
+                    <p class="auth-box-text">Have an account?</p>
+                    <a href="/auth" class="btn btn-secondary btn-sm">Login</a>
+                    <a href="/auth?mode=register" class="btn btn-primary btn-sm">Create Account</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">March. Draft. Win.</h1>
+                <p class="hero-subtitle">Build your dream DCI World Class team and compete with friends</p>
+                <div class="hero-cta">
+                    <a href="/auth?mode=register" class="btn btn-primary btn-lg">Start Drafting</a>
+                    <a href="#stats" class="btn btn-secondary btn-lg">View Stats</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Dashboard -->
+    <section class="stats-section" id="stats">
+        <div class="container">
+            <div class="section-header">
+                <h2>2025 World Class Standings</h2>
+                <p>Top performing drum corps this season</p>
+            </div>
+
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card loading">
+                    <div class="spinner"></div>
+                    <p>Loading stats...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tour Dates Section -->
+    <section class="tour-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Upcoming Competitions</h2>
+                <p>Don't miss the next performances</p>
+            </div>
+
+            <div class="tour-dates">
+                <div class="tour-date-card">
+                    <div class="date-badge">
+                        <span class="month">JUN</span>
+                        <span class="day">21</span>
+                    </div>
+                    <div class="event-info">
+                        <h3>DCI West</h3>
+                        <p class="location">Stanford, CA</p>
+                        <p class="corps-count">12 corps competing</p>
+                    </div>
+                </div>
+
+                <div class="tour-date-card">
+                    <div class="date-badge">
+                        <span class="month">JUN</span>
+                        <span class="day">28</span>
+                    </div>
+                    <div class="event-info">
+                        <h3>DCI East</h3>
+                        <p class="location">Indianapolis, IN</p>
+                        <p class="corps-count">15 corps competing</p>
+                    </div>
+                </div>
+
+                <div class="tour-date-card">
+                    <div class="date-badge">
+                        <span class="month">JUL</span>
+                        <span class="day">12</span>
+                    </div>
+                    <div class="event-info">
+                        <h3>DCI Southeast</h3>
+                        <p class="location">Atlanta, GA</p>
+                        <p class="corps-count">14 corps competing</p>
+                    </div>
+                </div>
+
+                <div class="tour-date-card featured">
+                    <div class="date-badge">
+                        <span class="month">AUG</span>
+                        <span class="day">8</span>
+                    </div>
+                    <div class="event-info">
+                        <h3>DCI World Championships</h3>
+                        <p class="location">Indianapolis, IN</p>
+                        <p class="corps-count">All World Class corps</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>How It Works</h2>
+                <p>Three simple steps to fantasy glory</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">1</div>
+                    <h3>Create Your League</h3>
+                    <p>Start a private league with friends or join an existing one</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">2</div>
+                    <h3>Draft Your Team</h3>
+                    <p>Select caption heads from your favorite World Class corps</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">3</div>
+                    <h3>Compete & Win</h3>
+                    <p>Track scores throughout the season and climb the leaderboard</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Build Your Team?</h2>
+                <p>Join thousands of drum corps fans competing this season</p>
+                <a href="/auth?mode=register" class="btn btn-primary btn-lg">Get Started Free</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo">Marching Fantasy League</div>
+                    <p>March. Draft. Win.</p>
+                </div>
+                <div class="footer-links">
+                    <a href="/scores">Scores</a>
+                    <a href="/auth">Login</a>
+                    <a href="/auth?mode=register">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="api.js"></script>
+    <script src="utils/avatar.js"></script>
+    <script>
+        // Check if user is logged in
+        async function initLandingPage() {
+            try {
+                const user = await api.verifySession();
+
+                if (user) {
+                    // User is logged in - redirect to app
+                    window.location.href = '/app';
+                    return;
+                }
+            } catch (error) {
+                // User not logged in - stay on landing page
+                console.log('User not logged in, showing landing page');
+            }
+
+            // Load stats for landing page
+            loadStats();
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats/corps?sort=score');
+                const data = await response.json();
+
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = data.corps.slice(0, 6).map((corps, index) => `
+                    <div class="stat-card">
+                        <div class="rank">#${index + 1}</div>
+                        <h3>${corps.corps_name}</h3>
+                        <div class="total-score">${corps.total_score}</div>
+                        <div class="score-breakdown">
+                            <div class="score-item">
+                                <span class="label">Brass</span>
+                                <span class="value">${corps.avg_brass}</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="label">Percussion</span>
+                                <span class="value">${corps.avg_percussion}</span>
+                            </div>
+                            <div class="score-item">
+                                <span class="label">Guard</span>
+                                <span class="value">${corps.avg_guard}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                document.getElementById('statsGrid').innerHTML =
+                    '<div class="stat-card error"><p>Failed to load stats</p></div>';
+            }
+        }
+
+        initLandingPage();
+    </script>
+</body>
+
+</html>
