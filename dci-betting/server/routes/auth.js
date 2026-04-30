@@ -176,7 +176,7 @@ router.get('/verify', async (req, res) => {
 
         // Fetch user data including profile picture
         const result = await db.query(
-            'SELECT id, email, username, profile_picture_url FROM users WHERE id = $1',
+            'SELECT id, email, username, profile_picture_url, is_admin FROM users WHERE id = $1',
             [decoded.userId]
         );
 
@@ -192,7 +192,8 @@ router.get('/verify', async (req, res) => {
                 id: user.id,
                 email: user.email,
                 username: user.username,
-                profile_picture_url: user.profile_picture_url
+                profile_picture_url: user.profile_picture_url,
+                is_admin: user.is_admin
             }
         });
     } catch (error) {

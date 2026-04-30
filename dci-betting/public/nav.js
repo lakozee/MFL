@@ -49,6 +49,14 @@ class NavigationManager {
           </button>
           
           <div class="profile-dropdown-menu" id="profileDropdown">
+            ${this.currentUser.is_admin ? `
+            <a href="/admin" class="dropdown-item dropdown-item--admin">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+              </svg>
+              Admin Panel
+            </a>
+            ` : ''}
             <a href="/settings" class="dropdown-item">
               <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>

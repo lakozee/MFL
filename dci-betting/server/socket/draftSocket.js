@@ -9,16 +9,20 @@ function setupDraftSocket(server, db) {
         }
     });
 
-    // Track active draft timers
+    // Track active draft timers and disconnect grace timers
     const draftTimers = new Map();
+    const disconnectTimers = new Map();
 
-    // Middleware: Authenticate socket connections
+    // ── Auth middleware ───────────────────────────────────────────────────────
+    // JWT lives in an httpOnly cookie — parse it from the handshake headers
     io.use(async (socket, next) => {
         try {
-            const token = socket.handshake.auth.token;
-            if (!token) {
-                return next(new Error('No token provided'));
-            }
+            const cookieStr = socket.handshake.headers.cookie || '';
+            const match = cookieStr.match(/(?:^|;\s*)token=([^;]+)/);
+            const token = match ? decodeURIComponent(match[1]) : null;
+
+            if (!token) return next(new Error('No auth token'));
+
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             socket.userId = decoded.userId;
             socket.username = decoded.username;
@@ -28,29 +32,25 @@ function setupDraftSocket(server, db) {
         }
     });
 
-    // Main connection handler
+    // ── Connection handler ────────────────────────────────────────────────────
     io.on('connection', (socket) => {
-        console.log(`User ${socket.username} (${socket.userId}) connected`);
+        console.log(`[Socket] ${socket.username} (${socket.userId}) connected`);
 
-        // Join draft lobby
+        // ── join-lobby ────────────────────────────────────────────────────────
         socket.on('join-lobby', async (leagueId) => {
             try {
-                // Verify user is member of league
                 const memberCheck = await db.query(
                     'SELECT 1 FROM league_members WHERE league_id = $1 AND user_id = $2',
                     [leagueId, socket.userId]
                 );
-
                 if (memberCheck.rows.length === 0) {
                     socket.emit('error', { message: 'Not a member of this league' });
                     return;
                 }
 
-                // Join socket room for this league
                 socket.join(`league-${leagueId}`);
                 socket.currentLeagueId = leagueId;
 
-                // Update or create draft session
                 await db.query(`
                     INSERT INTO draft_sessions (league_id, user_id, is_connected, is_ready, last_heartbeat)
                     VALUES ($1, $2, true, false, NOW())
@@ -58,26 +58,34 @@ function setupDraftSocket(server, db) {
                     DO UPDATE SET is_connected = true, last_heartbeat = NOW()
                 `, [leagueId, socket.userId]);
 
-                // Get current lobby state
-                const lobbyState = await getLobbyState(db, leagueId);
+                // If reconnecting during grace period, cancel the disconnect timer
+                const graceKey = `${leagueId}-${socket.userId}`;
+                if (disconnectTimers.has(graceKey)) {
+                    clearInterval(disconnectTimers.get(graceKey));
+                    disconnectTimers.delete(graceKey);
+                    io.to(`league-${leagueId}`).emit('draft-resumed', {
+                        userId: socket.userId,
+                        username: socket.username
+                    });
+                    console.log(`[Socket] ${socket.username} reconnected in time — draft resumed`);
+                }
 
-                // Send current state to joining player
+                const lobbyState = await getLobbyState(db, leagueId);
                 socket.emit('lobby-state', lobbyState);
 
-                // Notify everyone about new player
                 io.to(`league-${leagueId}`).emit('player-joined', {
                     userId: socket.userId,
                     username: socket.username
                 });
 
-                console.log(`${socket.username} joined lobby for league ${leagueId}`);
+                console.log(`[Socket] ${socket.username} joined lobby for league ${leagueId}`);
             } catch (error) {
-                console.error('join-lobby error:', error);
+                console.error('[Socket] join-lobby error:', error);
                 socket.emit('error', { message: 'Failed to join lobby' });
             }
         });
 
-        // Ready up
+        // ── ready-up ──────────────────────────────────────────────────────────
         socket.on('ready-up', async (leagueId) => {
             try {
                 await db.query(`
@@ -90,192 +98,221 @@ function setupDraftSocket(server, db) {
                     'SELECT is_ready FROM draft_sessions WHERE league_id = $1 AND user_id = $2',
                     [leagueId, socket.userId]
                 );
-
                 const isReady = session.rows[0]?.is_ready || false;
 
-                // Notify everyone about ready status change
                 io.to(`league-${leagueId}`).emit('player-ready-changed', {
                     userId: socket.userId,
                     username: socket.username,
                     isReady
                 });
 
-                // Check if all players are ready
                 const lobbyState = await getLobbyState(db, leagueId);
                 io.to(`league-${leagueId}`).emit('lobby-state', lobbyState);
 
-                console.log(`${socket.username} ${isReady ? 'ready' : 'not ready'} in league ${leagueId}`);
+                console.log(`[Socket] ${socket.username} ${isReady ? 'ready' : 'not ready'} in league ${leagueId}`);
             } catch (error) {
-                console.error('ready-up error:', error);
+                console.error('[Socket] ready-up error:', error);
                 socket.emit('error', { message: 'Failed to update ready status' });
             }
         });
 
-        // Start draft (creator only)
+        // ── start-draft ───────────────────────────────────────────────────────
         socket.on('start-draft', async (data) => {
             try {
                 const { leagueId, turnTimer } = data;
 
-                // Verify user is creator
                 const leagueCheck = await db.query(
                     'SELECT creator_id FROM leagues WHERE id = $1',
                     [leagueId]
                 );
-
                 if (leagueCheck.rows.length === 0 || leagueCheck.rows[0].creator_id !== socket.userId) {
-                    socket.emit('error', { message: 'Only league creator can start draft' });
+                    socket.emit('error', { message: 'Only the league creator can start the draft' });
                     return;
                 }
 
-                // Verify all players are ready
                 const lobbyState = await getLobbyState(db, leagueId);
                 if (!lobbyState.allReady || !lobbyState.allConnected) {
-                    socket.emit('error', { message: 'Not all players are ready' });
+                    socket.emit('error', { message: 'Not all players are connected and ready' });
                     return;
                 }
 
-                // Update league
+                // Randomly shuffle draft positions
+                const memberIds = await getDraftOrder(db, leagueId);
+                const shuffled = [...memberIds].sort(() => Math.random() - 0.5);
+                for (let i = 0; i < shuffled.length; i++) {
+                    await db.query(
+                        'UPDATE league_members SET draft_position = $1 WHERE league_id = $2 AND user_id = $3',
+                        [i + 1, leagueId, shuffled[i]]
+                    );
+                }
+
                 await db.query(`
                     UPDATE leagues
-                    SET draft_started = true, 
+                    SET draft_started = true,
                         draft_lobby_open = false,
                         turn_timer_seconds = $2,
                         current_draft_turn = 0
                     WHERE id = $1
                 `, [leagueId, turnTimer || null]);
 
-                // Notify all players draft has started
                 io.to(`league-${leagueId}`).emit('draft-started', {
                     turnTimer,
-                    draftOrder: lobbyState.draftOrder
+                    draftOrder: shuffled
                 });
 
-                // Start first turn (always unlimited)
-                startTurn(io, db, leagueId, 0, true);
+                // Start first turn — pass playerCount so round 1 is fully unlimited
+                await startTurn(io, db, draftTimers, leagueId, 0, shuffled.length);
 
-                console.log(`Draft started for league ${leagueId} with timer: ${turnTimer || 'unlimited'}`);
+                console.log(`[Socket] Draft started for league ${leagueId} | timer: ${turnTimer || 'unlimited'} | players: ${shuffled.length}`);
             } catch (error) {
-                console.error('start-draft error:', error);
+                console.error('[Socket] start-draft error:', error);
                 socket.emit('error', { message: 'Failed to start draft' });
             }
         });
 
-        // Make draft pick
+        // ── make-pick ─────────────────────────────────────────────────────────
         socket.on('make-pick', async (data) => {
             try {
                 const { leagueId, captionId } = data;
 
-                // Verify it's player's turn
                 const league = await db.query(
                     'SELECT current_draft_turn FROM leagues WHERE id = $1',
                     [leagueId]
                 );
-
+                const turnIndex = league.rows[0].current_draft_turn;
                 const draftOrder = await getDraftOrder(db, leagueId);
-                const currentTurnUserId = draftOrder[league.rows[0].current_draft_turn];
+                const currentTurnUserId = draftOrder[turnIndex % draftOrder.length];
 
                 if (currentTurnUserId !== socket.userId) {
                     socket.emit('error', { message: 'Not your turn' });
                     return;
                 }
 
-                // Get caption details
-                const sectionMap = {
-                    'Brass': 'brass',
-                    'Percussion': 'percussion',
-                    'Color Guard': 'colorGuard',
-                    'General Effect': 'generalEffect',
-                    'Visual Performance': 'visualPerformance'
-                };
+                // Check caption not already drafted
+                const existing = await db.query(
+                    'SELECT 1 FROM draft_picks WHERE league_id = $1 AND caption_id = $2',
+                    [leagueId, captionId]
+                );
+                if (existing.rows.length > 0) {
+                    socket.emit('error', { message: 'Caption already drafted' });
+                    return;
+                }
 
-                // This would come from frontend state, but for MVP we'll derive it
-                // In production, caption metadata should come from a captions table
                 const section = deriveSectionFromCaptionId(captionId);
 
-                // Record pick
-                const pickNumber = league.rows[0].current_draft_turn;
                 await db.query(`
                     INSERT INTO draft_picks (league_id, user_id, caption_id, section_type, pick_number)
                     VALUES ($1, $2, $3, $4, $5)
-                `, [leagueId, socket.userId, captionId, section, pickNumber]);
+                `, [leagueId, socket.userId, captionId, section, turnIndex]);
 
-                // Stop current timer
                 stopTurnTimer(leagueId, draftTimers);
 
-                // Notify all players about pick
                 io.to(`league-${leagueId}`).emit('pick-made', {
                     userId: socket.userId,
                     username: socket.username,
                     captionId,
-                    pickNumber
+                    section,
+                    pickNumber: turnIndex
                 });
 
-                // Move to next turn
-                const newTurn = pickNumber + 1;
-                const totalPicks = draftOrder.length * 5; // 5 rounds
+                // TODO: expand total picks to playerCount * 8 per MFL spec (8 scoreable captions)
+                const totalPicks = draftOrder.length * 5; // 5 rounds currently
+                const newTurn = turnIndex + 1;
 
                 if (newTurn < totalPicks) {
                     await db.query(
                         'UPDATE leagues SET current_draft_turn = $2 WHERE id = $1',
                         [leagueId, newTurn]
                     );
-
-                    // Check if next player is connected
-                    const nextUserId = draftOrder[newTurn % draftOrder.length];
-                    const isFirstTurn = Math.floor(newTurn / draftOrder.length) === 0;
-
-                    await startTurn(io, db, leagueId, newTurn, isFirstTurn);
+                    await startTurn(io, db, draftTimers, leagueId, newTurn, draftOrder.length);
                 } else {
-                    // Draft complete
                     await db.query(
                         'UPDATE leagues SET draft_completed = true WHERE id = $1',
                         [leagueId]
                     );
-
                     io.to(`league-${leagueId}`).emit('draft-completed');
-                    console.log(`Draft completed for league ${leagueId}`);
+                    console.log(`[Socket] Draft completed for league ${leagueId}`);
                 }
 
-                console.log(`${socket.username} picked ${captionId} in league ${leagueId}`);
+                console.log(`[Socket] ${socket.username} picked ${captionId} (pick #${turnIndex}) in league ${leagueId}`);
             } catch (error) {
-                console.error('make-pick error:', error);
+                console.error('[Socket] make-pick error:', error);
                 socket.emit('error', { message: 'Failed to make pick' });
             }
         });
 
-        // Heartbeat for connection tracking
+        // ── heartbeat ─────────────────────────────────────────────────────────
         socket.on('heartbeat', async (leagueId) => {
             try {
                 await db.query(`
-                    UPDATE draft_sessions
-                    SET last_heartbeat = NOW()
+                    UPDATE draft_sessions SET last_heartbeat = NOW()
                     WHERE league_id = $1 AND user_id = $2
                 `, [leagueId, socket.userId]);
             } catch (error) {
-                console.error('heartbeat error:', error);
+                console.error('[Socket] heartbeat error:', error);
             }
         });
 
-        // Disconnect
+        // ── disconnect ────────────────────────────────────────────────────────
         socket.on('disconnect', async () => {
             try {
-                if (socket.currentLeagueId) {
-                    await db.query(`
-                        UPDATE draft_sessions
-                        SET is_connected = false
-                        WHERE league_id = $1 AND user_id = $2
-                    `, [socket.currentLeagueId, socket.userId]);
+                const leagueId = socket.currentLeagueId;
+                if (!leagueId) return;
 
-                    // Notify everyone
-                    io.to(`league-${socket.currentLeagueId}`).emit('player-disconnected', {
+                await db.query(`
+                    UPDATE draft_sessions SET is_connected = false
+                    WHERE league_id = $1 AND user_id = $2
+                `, [leagueId, socket.userId]);
+
+                io.to(`league-${leagueId}`).emit('player-disconnected', {
+                    userId: socket.userId,
+                    username: socket.username
+                });
+
+                console.log(`[Socket] ${socket.username} disconnected from league ${leagueId}`);
+
+                // Check if it's this player's turn — if so, start 2-min grace period
+                const league = await db.query(
+                    'SELECT current_draft_turn, draft_started, draft_completed FROM leagues WHERE id = $1',
+                    [leagueId]
+                );
+                if (!league.rows[0] || !league.rows[0].draft_started || league.rows[0].draft_completed) return;
+
+                const turnIndex = league.rows[0].current_draft_turn;
+                const draftOrder = await getDraftOrder(db, leagueId);
+                const activeUserId = draftOrder[turnIndex % draftOrder.length];
+
+                if (activeUserId !== socket.userId) return; // Not their turn — just mark disconnected, pause naturally
+
+                // It IS their turn — start 2-minute grace countdown
+                io.to(`league-${leagueId}`).emit('draft-paused', {
+                    reason: 'Current player disconnected',
+                    userId: socket.userId,
+                    username: socket.username
+                });
+
+                let remaining = 120;
+                const graceKey = `${leagueId}-${socket.userId}`;
+
+                const graceTimer = setInterval(async () => {
+                    remaining--;
+                    io.to(`league-${leagueId}`).emit('reconnect-countdown', {
                         userId: socket.userId,
-                        username: socket.username
+                        username: socket.username,
+                        seconds: remaining
                     });
 
-                    console.log(`${socket.username} disconnected from league ${socket.currentLeagueId}`);
-                }
+                    if (remaining <= 0) {
+                        clearInterval(graceTimer);
+                        disconnectTimers.delete(graceKey);
+                        console.log(`[Socket] Grace period expired for ${socket.username} — auto-picking`);
+                        await autoPickCaption(io, db, draftTimers, leagueId, turnIndex, draftOrder);
+                    }
+                }, 1000);
+
+                disconnectTimers.set(graceKey, graceTimer);
             } catch (error) {
-                console.error('disconnect error:', error);
+                console.error('[Socket] disconnect error:', error);
             }
         });
     });
@@ -283,7 +320,7 @@ function setupDraftSocket(server, db) {
     return io;
 }
 
-// Helper Functions
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function getLobbyState(db, leagueId) {
     const sessions = await db.query(`
@@ -296,7 +333,7 @@ async function getLobbyState(db, leagueId) {
     `, [leagueId]);
 
     const league = await db.query(
-        'SELECT max_players, creator_id FROM leagues WHERE id = $1',
+        'SELECT max_players, min_players, creator_id FROM leagues WHERE id = $1',
         [leagueId]
     );
 
@@ -308,15 +345,15 @@ async function getLobbyState(db, leagueId) {
         isReady: row.is_ready
     }));
 
-    const allConnected = players.every(p => p.is_connected);
-    const allReady = players.every(p => p.isReady);
-    const requiredPlayers = league.rows[0]?.max_players || 0;
+    const allConnected = players.length > 0 && players.every(p => p.isConnected);
+    const allReady = players.length > 0 && players.every(p => p.isReady);
+    const minPlayers = league.rows[0]?.min_players || 4;
 
     return {
         players,
         allConnected,
         allReady,
-        canStart: players.length >= 4 && allConnected && allReady,
+        canStart: players.length >= minPlayers && allConnected && allReady,
         creatorId: league.rows[0]?.creator_id,
         draftOrder: players.map(p => p.userId)
     };
@@ -324,28 +361,26 @@ async function getLobbyState(db, leagueId) {
 
 async function getDraftOrder(db, leagueId) {
     const members = await db.query(`
-        SELECT user_id
-        FROM league_members
+        SELECT user_id FROM league_members
         WHERE league_id = $1
         ORDER BY draft_position
     `, [leagueId]);
-
     return members.rows.map(row => row.user_id);
 }
 
-async function startTurn(io, db, leagueId, turnIndex, isFirstTurn) {
+// Round 1 = all picks where turnIndex < playerCount (unlimited time)
+// Round 2+ = use the configured timer
+async function startTurn(io, db, draftTimers, leagueId, turnIndex, playerCount) {
     const draftOrder = await getDraftOrder(db, leagueId);
     const currentUserId = draftOrder[turnIndex % draftOrder.length];
     const nextUserId = draftOrder[(turnIndex + 1) % draftOrder.length];
 
-    // Check if current player is connected
+    // Check if current player is still connected
     const session = await db.query(
         'SELECT is_connected FROM draft_sessions WHERE league_id = $1 AND user_id = $2',
         [leagueId, currentUserId]
     );
-
     if (session.rows.length > 0 && !session.rows[0].is_connected) {
-        // Player disconnected, pause draft
         io.to(`league-${leagueId}`).emit('draft-paused', {
             reason: 'Current player is disconnected',
             userId: currentUserId
@@ -353,44 +388,46 @@ async function startTurn(io, db, leagueId, turnIndex, isFirstTurn) {
         return;
     }
 
-    // Emit turn change
+    const round = Math.floor(turnIndex / playerCount); // 0-indexed round
+    const isRoundOne = round === 0;
+
     io.to(`league-${leagueId}`).emit('turn-changed', {
         currentUserId,
         nextUserId,
-        turnIndex
+        turnIndex,
+        round: round + 1,
+        pickInRound: (turnIndex % playerCount) + 1,
+        totalPlayers: playerCount
     });
 
-    // Start timer if not first turn
-    if (!isFirstTurn) {
+    if (isRoundOne) {
+        // Entire round 1 is unlimited for all players
+        io.to(`league-${leagueId}`).emit('timer-tick', 'unlimited');
+    } else {
         const league = await db.query(
             'SELECT turn_timer_seconds FROM leagues WHERE id = $1',
             [leagueId]
         );
         const timerSeconds = league.rows[0]?.turn_timer_seconds;
-
         if (timerSeconds) {
-            startTurnTimer(io, db, leagueId, timerSeconds, turnIndex, draftOrder);
+            startTurnTimer(io, db, draftTimers, leagueId, timerSeconds, turnIndex, draftOrder, playerCount);
+        } else {
+            io.to(`league-${leagueId}`).emit('timer-tick', 'unlimited');
         }
-    } else {
-        // First turn = unlimited
-        io.to(`league-${leagueId}`).emit('timer-tick', 'unlimited');
     }
 }
 
-function startTurnTimer(io, db, leagueId, duration, turnIndex, draftOrder) {
-    let remainingSeconds = duration;
+function startTurnTimer(io, db, draftTimers, leagueId, duration, turnIndex, draftOrder, playerCount) {
+    let remaining = duration;
 
     const timerId = setInterval(async () => {
-        remainingSeconds--;
+        remaining--;
+        io.to(`league-${leagueId}`).emit('timer-tick', remaining);
 
-        io.to(`league-${leagueId}`).emit('timer-tick', remainingSeconds);
-
-        if (remainingSeconds <= 0) {
+        if (remaining <= 0) {
             clearInterval(timerId);
             draftTimers.delete(`${leagueId}-${turnIndex}`);
-
-            // Auto-pick highest rated available caption
-            await autoPickCaption(io, db, leagueId, turnIndex, draftOrder);
+            await autoPickCaption(io, db, draftTimers, leagueId, turnIndex, draftOrder, playerCount);
         }
     }, 1000);
 
@@ -406,28 +443,104 @@ function stopTurnTimer(leagueId, draftTimers) {
     }
 }
 
-async function autoPickCaption(io, db, leagueId, turnIndex, draftOrder) {
-    // Get highest rated available caption
-    // For MVP, we'll need caption data - this is simplified
+// Auto-pick the highest-scoring available caption for the current player
+async function autoPickCaption(io, db, draftTimers, leagueId, turnIndex, draftOrder, playerCount) {
     const userId = draftOrder[turnIndex % draftOrder.length];
 
-    console.log(`Auto-picking for user ${userId} due to timeout`);
+    // TODO: expand to 8 captions per MFL spec
+    // Hardcoded caption list matching the frontend captions in app.js
+    const ALL_CAPTIONS = [
+        { id: 'bd-brass',        corps: 'Blue Devils',           section: 'Brass',              score: 19.8 },
+        { id: 'bd-percussion',   corps: 'Blue Devils',           section: 'Percussion',          score: 19.7 },
+        { id: 'bd-guard',        corps: 'Blue Devils',           section: 'Color Guard',         score: 19.6 },
+        { id: 'bd-ge',           corps: 'Blue Devils',           section: 'General Effect',      score: 19.9 },
+        { id: 'bd-visual',       corps: 'Blue Devils',           section: 'Visual Performance',  score: 19.7 },
+        { id: 'scv-brass',       corps: 'Santa Clara Vanguard',  section: 'Brass',              score: 19.6 },
+        { id: 'scv-percussion',  corps: 'Santa Clara Vanguard',  section: 'Percussion',          score: 19.8 },
+        { id: 'scv-guard',       corps: 'Santa Clara Vanguard',  section: 'Color Guard',         score: 19.5 },
+        { id: 'scv-ge',          corps: 'Santa Clara Vanguard',  section: 'General Effect',      score: 19.7 },
+        { id: 'scv-visual',      corps: 'Santa Clara Vanguard',  section: 'Visual Performance',  score: 19.6 },
+        { id: 'bloo-brass',      corps: 'Bluecoats',             section: 'Brass',              score: 19.5 },
+        { id: 'bloo-percussion', corps: 'Bluecoats',             section: 'Percussion',          score: 19.6 },
+        { id: 'bloo-guard',      corps: 'Bluecoats',             section: 'Color Guard',         score: 19.8 },
+        { id: 'bloo-ge',         corps: 'Bluecoats',             section: 'General Effect',      score: 19.6 },
+        { id: 'bloo-visual',     corps: 'Bluecoats',             section: 'Visual Performance',  score: 19.5 },
+        { id: 'crown-brass',     corps: 'Carolina Crown',        section: 'Brass',              score: 19.7 },
+        { id: 'crown-percussion',corps: 'Carolina Crown',        section: 'Percussion',          score: 19.5 },
+        { id: 'crown-guard',     corps: 'Carolina Crown',        section: 'Color Guard',         score: 19.4 },
+        { id: 'crown-ge',        corps: 'Carolina Crown',        section: 'General Effect',      score: 19.6 },
+        { id: 'crown-visual',    corps: 'Carolina Crown',        section: 'Visual Performance',  score: 19.7 },
+        { id: 'cavs-brass',      corps: 'The Cavaliers',         section: 'Brass',              score: 19.4 },
+        { id: 'cavs-percussion', corps: 'The Cavaliers',         section: 'Percussion',          score: 19.4 },
+        { id: 'cavs-guard',      corps: 'The Cavaliers',         section: 'Color Guard',         score: 19.3 },
+        { id: 'cavs-ge',         corps: 'The Cavaliers',         section: 'General Effect',      score: 19.5 },
+        { id: 'cavs-visual',     corps: 'The Cavaliers',         section: 'Visual Performance',  score: 19.6 },
+        { id: 'bac-brass',       corps: 'Boston Crusaders',      section: 'Brass',              score: 19.3 },
+        { id: 'bac-percussion',  corps: 'Boston Crusaders',      section: 'Percussion',          score: 19.7 },
+        { id: 'bac-guard',       corps: 'Boston Crusaders',      section: 'Color Guard',         score: 19.2 },
+        { id: 'bac-ge',          corps: 'Boston Crusaders',      section: 'General Effect',      score: 19.4 },
+        { id: 'bac-visual',      corps: 'Boston Crusaders',      section: 'Visual Performance',  score: 19.3 },
+    ];
 
-    // This would need actual caption selection logic
-    // For now, emit timeout event
-    io.to(`league-${leagueId}`).emit('turn-timeout', {
+    // Get already-drafted captions
+    const drafted = await db.query(
+        'SELECT caption_id FROM draft_picks WHERE league_id = $1',
+        [leagueId]
+    );
+    const draftedIds = new Set(drafted.rows.map(r => r.caption_id));
+
+    // Get sections this player already has
+    const myPicks = await db.query(
+        'SELECT section_type FROM draft_picks WHERE league_id = $1 AND user_id = $2',
+        [leagueId, userId]
+    );
+    const myDraftedSections = new Set(myPicks.rows.map(r => r.section_type));
+
+    // Find best available caption the player still needs
+    const available = ALL_CAPTIONS
+        .filter(c => !draftedIds.has(c.id) && !myDraftedSections.has(c.section))
+        .sort((a, b) => b.score - a.score);
+
+    if (available.length === 0) {
+        console.log(`[Socket] Auto-pick: no available captions for user ${userId}`);
+        return;
+    }
+
+    const pick = available[0];
+
+    await db.query(`
+        INSERT INTO draft_picks (league_id, user_id, caption_id, section_type, pick_number)
+        VALUES ($1, $2, $3, $4, $5)
+    `, [leagueId, userId, pick.id, pick.section, turnIndex]);
+
+    io.to(`league-${leagueId}`).emit('pick-made', {
         userId,
-        turnIndex
+        username: '[Auto-pick]',
+        captionId: pick.id,
+        section: pick.section,
+        pickNumber: turnIndex,
+        autoPickd: true
     });
+
+    // TODO: expand to playerCount * 8 per MFL spec
+    const totalPicks = draftOrder.length * 5;
+    const newTurn = turnIndex + 1;
+
+    if (newTurn < totalPicks) {
+        await db.query('UPDATE leagues SET current_draft_turn = $2 WHERE id = $1', [leagueId, newTurn]);
+        await startTurn(io, db, draftTimers, leagueId, newTurn, playerCount || draftOrder.length);
+    } else {
+        await db.query('UPDATE leagues SET draft_completed = true WHERE id = $1', [leagueId]);
+        io.to(`league-${leagueId}`).emit('draft-completed');
+    }
 }
 
 function deriveSectionFromCaptionId(captionId) {
-    // Simple derivation from caption ID format
-    if (captionId.includes('brass')) return 'Brass';
+    if (captionId.includes('brass'))      return 'Brass';
     if (captionId.includes('percussion')) return 'Percussion';
-    if (captionId.includes('guard')) return 'Color Guard';
-    if (captionId.includes('ge')) return 'General Effect';
-    if (captionId.includes('visual')) return 'Visual Performance';
+    if (captionId.includes('guard'))      return 'Color Guard';
+    if (captionId.includes('ge'))         return 'General Effect';
+    if (captionId.includes('visual'))     return 'Visual Performance';
     return 'Unknown';
 }
 

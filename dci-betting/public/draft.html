@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draft Room - Marching Fantasy League</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── Shared ─────────────────────────────────────────────────── */
+        .phase { display: none; }
+        .phase.active { display: block; }
+
+        .draft-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .draft-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin: 0 0 0.25rem;
+            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .draft-subtitle {
+            color: var(--color-text-muted);
+            margin: 0 0 2rem;
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: var(--color-bg-secondary);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-text-muted);
+            margin: 0 0 1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--color-accent-primary);
+            color: #fff;
+        }
+
+        .btn-primary:not(:disabled):hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--color-text-primary);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .btn-secondary:not(:disabled):hover {
+            background: rgba(255,255,255,0.12);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: #fff;
+        }
+
+        .btn-success:not(:disabled):hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-large {
+            padding: 0.75rem 1.75rem;
+            font-size: 1rem;
+        }
+
+        .select-input {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px;
+            color: var(--color-text-primary);
+            padding: 0.6rem 0.9rem;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+        }
+
+        .select-input:focus {
+            outline: none;
+            border-color: var(--color-accent-primary);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 0.8rem 1.25rem;
+            border-radius: 8px;
+            background: #1e2030;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transform: translateY(0);
+            opacity: 1;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .toast.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+        .toast.success { border-color: #10b981; }
+        .toast.error { border-color: #ef4444; }
+
+        /* ── Phase 1: Pre-Lobby ─────────────────────────────────────── */
+        .prelobby-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 680px) {
+            .prelobby-grid { grid-template-columns: 1fr; }
+        }
+
+        .member-list { list-style: none; padding: 0; margin: 0; }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .member-item:last-child { border-bottom: none; }
+
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .member-name { font-size: 0.9rem; font-weight: 500; }
+        .member-team { font-size: 0.78rem; color: var(--color-text-muted); }
+
+        .timer-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .timer-label { font-size: 0.9rem; color: var(--color-text-secondary); white-space: nowrap; }
+
+        .waiting-msg {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-muted);
+            font-size: 0.95rem;
+        }
+
+        .invite-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .invite-input {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--color-text-muted);
+            padding: 0.55rem 0.9rem;
+            font-size: 0.85rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* ── Phase 2: Lobby ─────────────────────────────────────────── */
+        .lobby-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 800px) {
+            .lobby-grid { grid-template-columns: 1fr; }
+        }
+
+        .player-roster { list-style: none; padding: 0; margin: 0; }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .player-row:last-child { border-bottom: none; }
+
+        .conn-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .conn-dot.connected { background: #10b981; box-shadow: 0 0 6px #10b98166; }
+        .conn-dot.disconnected { background: rgba(255,255,255,0.2); }
+
+        .player-info { flex: 1; min-width: 0; }
+        .player-username { font-size: 0.9rem; font-weight: 600; }
+        .player-team { font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .ready-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            flex-shrink: 0;
+        }
+
+        .ready-badge.ready { background: rgba(16,185,129,0.15); color: #10b981; }
+        .ready-badge.waiting { background: rgba(255,255,255,0.07); color: var(--color-text-muted); }
+
+        .lobby-status {
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .lobby-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .instructions-panel {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .instructions-toggle {
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            padding: 0.85rem 1rem;
+            text-align: left;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .instructions-toggle:hover { background: rgba(255,255,255,0.04); }
+
+        .instructions-body {
+            padding: 0 1rem 1rem;
+            font-size: 0.82rem;
+            color: var(--color-text-muted);
+            line-height: 1.7;
+        }
+
+        .instructions-body ol { margin: 0; padding-left: 1.2rem; }
+        .instructions-body li { margin-bottom: 0.25rem; }
+        .instructions-body.hidden { display: none; }
+
+        /* ── Phase 3: Draft ─────────────────────────────────────────── */
+        .draft-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .draft-layout { grid-template-columns: 1fr; }
+        }
+
+        /* Turn banner */
+        .turn-banner {
+            background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            gap: 1rem;
+        }
+
+        .turn-banner.my-turn {
+            background: rgba(16,185,129,0.1);
+            border-color: rgba(16,185,129,0.4);
+        }
+
+        .turn-info { flex: 1; min-width: 0; }
+        .turn-label { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.2rem; }
+        .turn-player { font-size: 1.1rem; font-weight: 700; }
+        .turn-round { font-size: 0.82rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+
+        .turn-timer {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .turn-timer.unlimited { font-size: 1.1rem; color: #10b981; }
+        .turn-timer.low { color: #ef4444; }
+        .turn-timer.normal { color: var(--color-text-primary); }
+
+        /* Pause banner */
+        .pause-banner {
+            background: rgba(245,158,11,0.1);
+            border: 1px solid rgba(245,158,11,0.35);
+            border-radius: 10px;
+            padding: 0.85rem 1.25rem;
+            font-size: 0.9rem;
+            color: #f59e0b;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Filters */
+        .filter-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Caption grid */
+        .caption-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .caption-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .caption-card:hover:not(.drafted):not(.disabled) {
+            border-color: var(--color-accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(99,102,241,0.25);
+        }
+
+        .caption-card.drafted {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        .caption-card.disabled {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .caption-card.my-pick {
+            border-color: #10b981;
+            background: rgba(16,185,129,0.07);
+        }
+
+        .corps-bar {
+            height: 3px;
+            border-radius: 2px;
+            margin-bottom: 0.6rem;
+        }
+
+        .caption-corps { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.2rem; }
+        .caption-section { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .caption-score { font-size: 1rem; font-weight: 700; color: var(--color-accent-primary); }
+
+        .caption-owner {
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            margin-top: 0.3rem;
+            font-style: italic;
+        }
+
+        /* Confirm modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 1rem;
+        }
+
+        .modal-overlay.hidden { display: none; }
+
+        .modal {
+            background: var(--color-bg-secondary);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 1.75rem;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .modal h3 { margin: 0 0 0.5rem; font-size: 1.15rem; }
+        .modal p { margin: 0 0 1.5rem; color: var(--color-text-secondary); font-size: 0.9rem; }
+
+        .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+        /* Right column */
+        .roster-slots { list-style: none; padding: 0; margin: 0; }
+
+        .roster-slot {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.85rem;
+        }
+
+        .roster-slot:last-child { border-bottom: none; }
+
+        .slot-section {
+            width: 120px;
+            color: var(--color-text-muted);
+            font-size: 0.78rem;
+            flex-shrink: 0;
+        }
+
+        .slot-value { font-weight: 600; }
+        .slot-empty { color: rgba(255,255,255,0.25); font-style: italic; }
+
+        .pick-log { max-height: 220px; overflow-y: auto; }
+
+        .pick-entry {
+            font-size: 0.8rem;
+            padding: 0.35rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            gap: 0.5rem;
+            align-items: baseline;
+        }
+
+        .pick-entry:last-child { border-bottom: none; }
+
+        .pick-num { color: var(--color-text-muted); width: 28px; flex-shrink: 0; }
+        .pick-user { font-weight: 600; }
+        .pick-caption { color: var(--color-text-secondary); }
+
+        .all-teams-section { margin-top: 1rem; }
+
+        .team-block { margin-bottom: 1rem; }
+        .team-block-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-secondary); }
+
+        /* ── Phase 4: Complete ─────────────────────────────────────── */
+        .complete-banner {
+            text-align: center;
+            padding: 2.5rem;
+        }
+
+        .complete-banner h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0 0 0.5rem;
+        }
+
+        .standings-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.87rem;
+        }
+
+        .standings-table th {
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--color-text-muted);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .standings-table td {
+            padding: 0.65rem 0.75rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .standings-table tr:last-child td { border-bottom: none; }
+
+        .rank-1 td:first-child { color: #f59e0b; font-weight: 700; }
+
+        .final-teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo-link">
+                    <div class="logo">Marching Fantasy League</div>
+                </a>
+                <!-- nav.js inserts auth section here -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Toast notification -->
+    <div class="toast hidden" id="toast"></div>
+
+    <!-- Confirm pick modal -->
+    <div class="modal-overlay hidden" id="confirmModal">
+        <div class="modal">
+            <h3>Confirm Pick</h3>
+            <p id="confirmText">Draft this caption?</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="confirmCancel">Cancel</button>
+                <button class="btn btn-primary" id="confirmPick">Draft It</button>
+            </div>
+        </div>
+    </div>
+
+    <main>
+        <!-- ── Phase 1: Pre-Lobby ───────────────────────────────── -->
+        <div class="phase" id="phase-prelobby">
+            <div class="draft-container">
+                <h1 class="draft-title" id="p1-league-name">Loading...</h1>
+                <p class="draft-subtitle" id="p1-season">2025 Season</p>
+
+                <!-- Invite row -->
+                <div class="invite-row">
+                    <input type="text" class="invite-input" id="p1-invite-input" readonly placeholder="Generate invite link...">
+                    <button class="btn btn-secondary" id="p1-copy-btn">Copy Invite</button>
+                </div>
+
+                <div class="prelobby-grid">
+                    <!-- Member list -->
+                    <div class="card">
+                        <div class="card-title">League Members</div>
+                        <ul class="member-list" id="p1-member-list">
+                            <li class="member-item"><span style="color:var(--color-text-muted);font-size:0.85rem">Loading...</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Creator actions / waiting -->
+                    <div class="card" id="p1-creator-panel">
+                        <div class="card-title">Draft Settings</div>
+                        <div class="timer-row">
+                            <span class="timer-label">Turn Timer</span>
+                            <select class="select-input" id="p1-timer-select">
+                                <option value="">No Limit</option>
+                                <option value="30">30 seconds</option>
+                                <option value="60">60 seconds</option>
+                                <option value="90">90 seconds</option>
+                                <option value="120">120 seconds</option>
+                            </select>
+                        </div>
+                        <p style="font-size:0.82rem;color:var(--color-text-muted);margin:0 0 1.25rem;">
+                            Round 1 picks are always unlimited regardless of timer.
+                        </p>
+                        <button class="btn btn-primary btn-large" id="p1-open-lobby-btn">Open Draft Lobby</button>
+                    </div>
+
+                    <div class="card" id="p1-waiting-panel" style="display:none;">
+                        <div class="waiting-msg" id="p1-waiting-msg">Waiting for the league creator to open the draft lobby...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Phase 2: Lobby ───────────────────────────────────── -->
+        <div class="phase" id="phase-lobby">
+            <div class="draft-container">
+                <h1 class="draft-title" id="p2-league-name">Draft Lobby</h1>
+                <p class="draft-subtitle">All players must be connected and ready before the draft can begin.</p>
+
+                <div class="lobby-grid">
+                    <!-- Player roster -->
+                    <div>
+                        <div class="card">
+                            <div class="card-title">Players</div>
+                            <p class="lobby-status" id="p2-status">Loading...</p>
+                            <ul class="player-roster" id="p2-player-list"></ul>
+                        </div>
+
+                        <div class="instructions-panel">
+                            <button class="instructions-toggle" id="instructions-toggle">
+                                <span>How the Draft Works</span>
+                                <span id="instructions-chevron">▲</span>
+                            </button>
+                            <div class="instructions-body" id="instructions-body">
+                                <ol>
+                                    <li>All league members must be on this page and logged in.</li>
+                                    <li>Click <strong>Ready Up</strong> when you're set to start drafting.</li>
+                                    <li>Once everyone is ready, the league creator starts the draft.</li>
+                                    <li>Pick order is randomly assigned when the draft begins.</li>
+                                    <li>All Round 1 picks have unlimited time — choose carefully.</li>
+                                    <li>Rounds 2+ use the timer set by the creator (if any).</li>
+                                    <li>If you disconnect on your turn, the draft pauses up to 2 minutes for you to reconnect before an auto-pick is made.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right panel: actions -->
+                    <div>
+                        <div class="card lobby-actions">
+                            <div class="card-title">Actions</div>
+                            <button class="btn btn-success btn-large" id="p2-ready-btn">Ready Up</button>
+                            <button class="btn btn-primary btn-large" id="p2-start-btn" style="display:none;" disabled>Start Draft</button>
+                            <p id="p2-creator-hint" style="font-size:0.8rem;color:var(--color-text-muted);margin:0;display:none;">
+                                Start button activates when all players are connected and ready.
+                            </p>
+                        </div>
+
+                        <div class="invite-row" style="margin-top:0;">
+                            <input type="text" class="invite-input" id="p2-invite-input" readonly placeholder="Invite link...">
+                            <button class="btn btn-secondary" id="p2-copy-btn">Copy</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Phase 3: Draft ───────────────────────────────────── -->
+        <div class="phase" id="phase-draft">
+            <div class="draft-container">
+                <div class="draft-layout">
+                    <!-- Left: turn banner + caption grid -->
+                    <div>
+                        <!-- Turn banner -->
+                        <div class="turn-banner" id="turn-banner">
+                            <div class="turn-info">
+                                <div class="turn-label">Now Picking</div>
+                                <div class="turn-player" id="turn-player">—</div>
+                                <div class="turn-round" id="turn-round">Round 1, Pick 1</div>
+                            </div>
+                            <div class="turn-timer unlimited" id="turn-timer">Unlimited</div>
+                        </div>
+
+                        <!-- Pause/disconnect banner -->
+                        <div class="pause-banner" id="pause-banner" style="display:none;">
+                            <span>&#9646;</span>
+                            <span id="pause-msg">Draft paused — player disconnected.</span>
+                        </div>
+
+                        <!-- Filters -->
+                        <div class="filter-row">
+                            <select class="select-input" id="filter-corps">
+                                <option value="all">All Corps</option>
+                                <option value="bd">Blue Devils</option>
+                                <option value="scv">Santa Clara Vanguard</option>
+                                <option value="bloo">Bluecoats</option>
+                                <option value="crown">Carolina Crown</option>
+                                <option value="cavs">The Cavaliers</option>
+                                <option value="bac">Boston Crusaders</option>
+                            </select>
+                            <select class="select-input" id="filter-section">
+                                <option value="all">All Sections</option>
+                                <option value="brass">Brass</option>
+                                <option value="percussion">Percussion</option>
+                                <option value="guard">Color Guard</option>
+                                <option value="ge">General Effect</option>
+                                <option value="visual">Visual Performance</option>
+                            </select>
+                        </div>
+
+                        <!-- Caption grid -->
+                        <div class="caption-grid" id="caption-grid"></div>
+                    </div>
+
+                    <!-- Right: roster + board -->
+                    <div>
+                        <div class="card">
+                            <div class="card-title">My Roster</div>
+                            <ul class="roster-slots" id="my-roster"></ul>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-title">Draft Board</div>
+                            <div class="pick-log" id="pick-log"></div>
+                        </div>
+
+                        <div class="card all-teams-section" id="all-teams-card" style="display:none;">
+                            <div class="card-title" style="cursor:pointer;" id="all-teams-toggle">All Teams ▶</div>
+                            <div id="all-teams-body" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Phase 4: Complete ─────────────────────────────────── -->
+        <div class="phase" id="phase-complete">
+            <div class="draft-container">
+                <div class="complete-banner">
+                    <h2>Draft Complete!</h2>
+                    <p style="color:var(--color-text-muted);">All picks have been made. Here are the final rosters.</p>
+                    <a href="/app" class="btn btn-secondary" style="margin-top:0.75rem;">Back to League Hub</a>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Standings</div>
+                    <table class="standings-table" id="standings-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Team</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="standings-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Final Rosters</div>
+                    <div class="final-teams-grid" id="final-teams"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/utils/avatar.js"></script>
+    <script src="/api.js"></script>
+    <script src="/nav.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    // ── Caption data (matches draftSocket.js hardcoded list) ──────────────────
+    const ALL_CAPTIONS = [
+        { id: 'bd-brass',        corps: 'Blue Devils',          section: 'Brass',               score: 19.8, color: '#1e40af', corpsKey: 'bd' },
+        { id: 'bd-percussion',   corps: 'Blue Devils',          section: 'Percussion',           score: 19.7, color: '#1e40af', corpsKey: 'bd' },
+        { id: 'bd-guard',        corps: 'Blue Devils',          section: 'Color Guard',          score: 19.6, color: '#1e40af', corpsKey: 'bd' },
+        { id: 'bd-ge',           corps: 'Blue Devils',          section: 'General Effect',       score: 19.9, color: '#1e40af', corpsKey: 'bd' },
+        { id: 'bd-visual',       corps: 'Blue Devils',          section: 'Visual Performance',   score: 19.7, color: '#1e40af', corpsKey: 'bd' },
+        { id: 'scv-brass',       corps: 'Santa Clara Vanguard', section: 'Brass',               score: 19.6, color: '#dc2626', corpsKey: 'scv' },
+        { id: 'scv-percussion',  corps: 'Santa Clara Vanguard', section: 'Percussion',           score: 19.8, color: '#dc2626', corpsKey: 'scv' },
+        { id: 'scv-guard',       corps: 'Santa Clara Vanguard', section: 'Color Guard',          score: 19.5, color: '#dc2626', corpsKey: 'scv' },
+        { id: 'scv-ge',          corps: 'Santa Clara Vanguard', section: 'General Effect',       score: 19.7, color: '#dc2626', corpsKey: 'scv' },
+        { id: 'scv-visual',      corps: 'Santa Clara Vanguard', section: 'Visual Performance',   score: 19.6, color: '#dc2626', corpsKey: 'scv' },
+        { id: 'bloo-brass',      corps: 'Bluecoats',            section: 'Brass',               score: 19.5, color: '#0891b2', corpsKey: 'bloo' },
+        { id: 'bloo-percussion', corps: 'Bluecoats',            section: 'Percussion',           score: 19.6, color: '#0891b2', corpsKey: 'bloo' },
+        { id: 'bloo-guard',      corps: 'Bluecoats',            section: 'Color Guard',          score: 19.8, color: '#0891b2', corpsKey: 'bloo' },
+        { id: 'bloo-ge',         corps: 'Bluecoats',            section: 'General Effect',       score: 19.6, color: '#0891b2', corpsKey: 'bloo' },
+        { id: 'bloo-visual',     corps: 'Bluecoats',            section: 'Visual Performance',   score: 19.5, color: '#0891b2', corpsKey: 'bloo' },
+        { id: 'crown-brass',     corps: 'Carolina Crown',       section: 'Brass',               score: 19.7, color: '#7c3aed', corpsKey: 'crown' },
+        { id: 'crown-percussion',corps: 'Carolina Crown',       section: 'Percussion',           score: 19.5, color: '#7c3aed', corpsKey: 'crown' },
+        { id: 'crown-guard',     corps: 'Carolina Crown',       section: 'Color Guard',          score: 19.4, color: '#7c3aed', corpsKey: 'crown' },
+        { id: 'crown-ge',        corps: 'Carolina Crown',       section: 'General Effect',       score: 19.6, color: '#7c3aed', corpsKey: 'crown' },
+        { id: 'crown-visual',    corps: 'Carolina Crown',       section: 'Visual Performance',   score: 19.7, color: '#7c3aed', corpsKey: 'crown' },
+        { id: 'cavs-brass',      corps: 'The Cavaliers',        section: 'Brass',               score: 19.4, color: '#ea580c', corpsKey: 'cavs' },
+        { id: 'cavs-percussion', corps: 'The Cavaliers',        section: 'Percussion',           score: 19.4, color: '#ea580c', corpsKey: 'cavs' },
+        { id: 'cavs-guard',      corps: 'The Cavaliers',        section: 'Color Guard',          score: 19.3, color: '#ea580c', corpsKey: 'cavs' },
+        { id: 'cavs-ge',         corps: 'The Cavaliers',        section: 'General Effect',       score: 19.5, color: '#ea580c', corpsKey: 'cavs' },
+        { id: 'cavs-visual',     corps: 'The Cavaliers',        section: 'Visual Performance',   score: 19.6, color: '#ea580c', corpsKey: 'cavs' },
+        { id: 'bac-brass',       corps: 'Boston Crusaders',     section: 'Brass',               score: 19.3, color: '#be123c', corpsKey: 'bac' },
+        { id: 'bac-percussion',  corps: 'Boston Crusaders',     section: 'Percussion',           score: 19.7, color: '#be123c', corpsKey: 'bac' },
+        { id: 'bac-guard',       corps: 'Boston Crusaders',     section: 'Color Guard',          score: 19.2, color: '#be123c', corpsKey: 'bac' },
+        { id: 'bac-ge',          corps: 'Boston Crusaders',     section: 'General Effect',       score: 19.4, color: '#be123c', corpsKey: 'bac' },
+        { id: 'bac-visual',      corps: 'Boston Crusaders',     section: 'Visual Performance',   score: 19.3, color: '#be123c', corpsKey: 'bac' },
+    ];
+
+    const SECTIONS = ['Brass', 'Percussion', 'Color Guard', 'General Effect', 'Visual Performance'];
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    const S = {
+        leagueId: null,
+        currentUser: null,
+        league: null,
+        members: [],
+        isCreator: false,
+
+        // Lobby
+        socket: null,
+        lobbyPlayers: [],
+
+        // Draft
+        draftedCaptions: {},   // captionId -> { userId, username }
+        myPicks: [],           // { captionId, section }
+        allPicks: [],          // { userId, username, captionId, section, pickNumber }
+        allTeams: {},          // userId -> { username, teamName, picks: [] }
+        currentTurnUserId: null,
+        filterCorps: 'all',
+        filterSection: 'all',
+        pendingPickId: null,
+        timerInterval: null,
+        heartbeatInterval: null,
+        pollInterval: null,
+    };
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+    function showPhase(phase) {
+        document.querySelectorAll('.phase').forEach(el => el.classList.remove('active'));
+        document.getElementById(`phase-${phase}`).classList.add('active');
+    }
+
+    function showToast(msg, type = 'info', duration = 3500) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `toast ${type}`;
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.add('hidden'), duration);
+    }
+
+    function captionLabel(c) {
+        return `${c.corps} — ${c.section}`;
+    }
+
+    function getCaption(id) {
+        return ALL_CAPTIONS.find(c => c.id === id);
+    }
+
+    function avatarUrl(username, profileUrl) {
+        return (profileUrl && profileUrl !== '/default-avatar.png')
+            ? profileUrl
+            : generateDefaultAvatar(username, 32);
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    async function init() {
+        const parts = window.location.pathname.split('/');
+        S.leagueId = parts[parts.length - 1];
+
+        // Auth check
+        S.currentUser = await api.verifySession();
+        if (!S.currentUser) {
+            window.location.href = '/auth';
+            return;
+        }
+
+        // Fetch league + members
+        let leagueData, membersData;
+        try {
+            [leagueData, membersData] = await Promise.all([
+                api.request(`/leagues/${S.leagueId}`),
+                api.request(`/leagues/${S.leagueId}/members`)
+            ]);
+        } catch (e) {
+            document.body.innerHTML = `<div style="text-align:center;padding:4rem;color:var(--color-text-muted)">Unable to load league. <a href="/app" style="color:var(--color-accent-primary)">Go back</a></div>`;
+            return;
+        }
+
+        S.league = leagueData.league;
+        S.members = membersData.members;
+        S.isCreator = (S.league.creator_id === S.currentUser.id);
+
+        // Determine starting phase
+        if (S.league.draft_completed) {
+            await loadCompletePhase();
+        } else if (S.league.draft_started) {
+            await loadDraftPhase();
+        } else if (S.league.draft_lobby_open) {
+            loadLobbyPhase();
+        } else {
+            loadPreLobbyPhase();
+        }
+    }
+
+    // ── Phase 1: Pre-Lobby ────────────────────────────────────────────────────
+    function loadPreLobbyPhase() {
+        showPhase('prelobby');
+
+        document.getElementById('p1-league-name').textContent = S.league.name;
+        document.getElementById('p1-season').textContent = `2025 Season · ${S.members.length} of ${S.league.max_players} players`;
+
+        // Member list
+        const list = document.getElementById('p1-member-list');
+        list.innerHTML = S.members.map(m => `
+            <li class="member-item">
+                <img class="member-avatar" src="${avatarUrl(m.username, m.profile_picture_url)}" alt="${m.username}">
+                <div>
+                    <div class="member-name">${m.username}</div>
+                    <div class="member-team">${m.team_name}</div>
+                </div>
+            </li>
+        `).join('');
+
+        // Show creator or waiting panel
+        if (S.isCreator) {
+            document.getElementById('p1-creator-panel').style.display = '';
+            document.getElementById('p1-waiting-panel').style.display = 'none';
+
+            document.getElementById('p1-open-lobby-btn').addEventListener('click', openLobby);
+        } else {
+            document.getElementById('p1-creator-panel').style.display = 'none';
+            document.getElementById('p1-waiting-panel').style.display = '';
+            const creator = S.members.find(m => m.user_id === S.league.creator_id);
+            document.getElementById('p1-waiting-msg').textContent =
+                `Waiting for ${creator ? creator.username : 'the creator'} to open the draft lobby...`;
+
+            // Poll every 5s for lobby open
+            S.pollInterval = setInterval(async () => {
+                try {
+                    const d = await api.request(`/leagues/${S.leagueId}`);
+                    if (d.league.draft_lobby_open || d.league.draft_started || d.league.draft_completed) {
+                        clearInterval(S.pollInterval);
+                        S.league = d.league;
+                        if (d.league.draft_completed) { await loadCompletePhase(); }
+                        else if (d.league.draft_started) { await loadDraftPhase(); }
+                        else { loadLobbyPhase(); }
+                    }
+                } catch (_) {}
+            }, 5000);
+        }
+
+        // Invite link
+        setupInviteButton('p1-invite-input', 'p1-copy-btn');
+    }
+
+    async function openLobby() {
+        const btn = document.getElementById('p1-open-lobby-btn');
+        const timerVal = document.getElementById('p1-timer-select').value;
+        btn.disabled = true;
+        btn.textContent = 'Opening...';
+        try {
+            const res = await api.request(`/leagues/${S.leagueId}/open-lobby`, {
+                method: 'POST',
+                body: JSON.stringify({ turnTimer: timerVal || null })
+            });
+            S.league = res.league;
+            showToast('Lobby opened!', 'success');
+            loadLobbyPhase();
+        } catch (e) {
+            showToast(e.message || 'Failed to open lobby', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Open Draft Lobby';
+        }
+    }
+
+    // ── Phase 2: Lobby ────────────────────────────────────────────────────────
+    function loadLobbyPhase() {
+        showPhase('lobby');
+        document.getElementById('p2-league-name').textContent = S.league.name;
+
+        if (S.isCreator) {
+            document.getElementById('p2-start-btn').style.display = '';
+            document.getElementById('p2-creator-hint').style.display = '';
+        }
+
+        setupInviteButton('p2-invite-input', 'p2-copy-btn');
+
+        connectSocket();
+
+        // Instructions toggle
+        document.getElementById('instructions-toggle').addEventListener('click', () => {
+            const body = document.getElementById('instructions-body');
+            const chevron = document.getElementById('instructions-chevron');
+            const hidden = body.classList.toggle('hidden');
+            chevron.textContent = hidden ? '▶' : '▲';
+        });
+
+        // Ready up button
+        document.getElementById('p2-ready-btn').addEventListener('click', () => {
+            if (S.socket) S.socket.emit('ready-up', S.leagueId);
+        });
+
+        // Start draft button
+        document.getElementById('p2-start-btn').addEventListener('click', () => {
+            const timerVal = S.league.turn_timer_seconds || null;
+            if (S.socket) S.socket.emit('start-draft', { leagueId: S.leagueId, turnTimer: timerVal });
+        });
+    }
+
+    function renderLobbyPlayers(players) {
+        const list = document.getElementById('p2-player-list');
+        list.innerHTML = players.map(p => `
+            <li class="player-row">
+                <span class="conn-dot ${p.isConnected ? 'connected' : 'disconnected'}"></span>
+                <img class="member-avatar" src="${generateDefaultAvatar(p.username, 32)}" alt="${p.username}">
+                <div class="player-info">
+                    <div class="player-username">${p.username}${p.userId === S.currentUser.id ? ' (you)' : ''}</div>
+                    <div class="player-team">${p.teamName}</div>
+                </div>
+                <span class="ready-badge ${p.isReady ? 'ready' : 'waiting'}">${p.isReady ? '&#10003; Ready' : '... Waiting'}</span>
+            </li>
+        `).join('');
+
+        const ready = players.filter(p => p.isReady).length;
+        document.getElementById('p2-status').textContent = `${ready} of ${players.length} players ready`;
+
+        const canStart = players.length >= (S.league.min_players || 4)
+            && players.every(p => p.isConnected && p.isReady);
+        const startBtn = document.getElementById('p2-start-btn');
+        if (startBtn) startBtn.disabled = !canStart;
+
+        const myState = players.find(p => p.userId === S.currentUser.id);
+        const readyBtn = document.getElementById('p2-ready-btn');
+        if (myState) {
+            readyBtn.textContent = myState.isReady ? 'Unready' : 'Ready Up';
+            readyBtn.className = `btn btn-large ${myState.isReady ? 'btn-secondary' : 'btn-success'}`;
+        }
+    }
+
+    // ── Phase 3: Draft ────────────────────────────────────────────────────────
+    async function loadDraftPhase() {
+        showPhase('draft');
+
+        // Load existing picks from REST
+        try {
+            const d = await api.request(`/draft/${S.leagueId}/picks`);
+            for (const pick of d.picks) {
+                S.draftedCaptions[pick.caption_id] = { userId: pick.user_id, username: pick.username };
+                S.allPicks.push({ userId: pick.user_id, username: pick.username, captionId: pick.caption_id, section: pick.section_type, pickNumber: pick.pick_number });
+                if (!S.allTeams[pick.user_id]) S.allTeams[pick.user_id] = { username: pick.username, teamName: '', picks: [] };
+                S.allTeams[pick.user_id].picks.push(pick.caption_id);
+                if (pick.user_id === S.currentUser.id) S.myPicks.push({ captionId: pick.caption_id, section: pick.section_type });
+            }
+        } catch (_) {}
+
+        // Team names from members
+        for (const m of S.members) {
+            if (!S.allTeams[m.user_id]) S.allTeams[m.user_id] = { username: m.username, teamName: m.team_name, picks: [] };
+            else S.allTeams[m.user_id].teamName = m.team_name;
+        }
+
+        renderCaptionGrid();
+        renderMyRoster();
+        renderPickLog();
+
+        // Filters
+        document.getElementById('filter-corps').addEventListener('change', e => {
+            S.filterCorps = e.target.value;
+            renderCaptionGrid();
+        });
+        document.getElementById('filter-section').addEventListener('change', e => {
+            S.filterSection = e.target.value;
+            renderCaptionGrid();
+        });
+
+        // All teams toggle
+        const allTeamsCard = document.getElementById('all-teams-card');
+        allTeamsCard.style.display = '';
+        document.getElementById('all-teams-toggle').addEventListener('click', () => {
+            const body = document.getElementById('all-teams-body');
+            const open = body.style.display === 'none';
+            body.style.display = open ? '' : 'none';
+            document.getElementById('all-teams-toggle').innerHTML = `All Teams ${open ? '&#9660;' : '&#9654;'}`;
+            if (open) renderAllTeams();
+        });
+
+        // Connect socket if not already
+        if (!S.socket) connectSocket();
+
+        // Start heartbeat
+        S.heartbeatInterval = setInterval(() => {
+            if (S.socket) S.socket.emit('heartbeat', S.leagueId);
+        }, 30000);
+    }
+
+    function renderCaptionGrid() {
+        const grid = document.getElementById('caption-grid');
+        const isMyTurn = S.currentTurnUserId === S.currentUser.id;
+
+        const visible = ALL_CAPTIONS.filter(c => {
+            if (S.filterCorps !== 'all' && c.corpsKey !== S.filterCorps) return false;
+            if (S.filterSection !== 'all') {
+                const sectionMap = { brass: 'Brass', percussion: 'Percussion', guard: 'Color Guard', ge: 'General Effect', visual: 'Visual Performance' };
+                if (c.section !== sectionMap[S.filterSection]) return false;
+            }
+            return true;
+        });
+
+        grid.innerHTML = visible.map(c => {
+            const drafted = S.draftedCaptions[c.id];
+            const isMyPick = drafted && drafted.userId === S.currentUser.id;
+            const cls = drafted ? 'drafted' : (!isMyTurn ? 'disabled' : '');
+            const extraCls = isMyPick ? ' my-pick' : '';
+            return `
+                <div class="caption-card ${cls}${extraCls}" data-id="${c.id}">
+                    <div class="corps-bar" style="background:${c.color}"></div>
+                    <div class="caption-corps">${c.corps}</div>
+                    <div class="caption-section">${c.section}</div>
+                    <div class="caption-score">${c.score.toFixed(1)}</div>
+                    ${drafted ? `<div class="caption-owner">${isMyPick ? 'Your pick' : drafted.username}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+
+        if (isMyTurn) {
+            grid.querySelectorAll('.caption-card:not(.drafted)').forEach(card => {
+                card.addEventListener('click', () => openConfirmModal(card.dataset.id));
+            });
+        }
+    }
+
+    function openConfirmModal(captionId) {
+        const c = getCaption(captionId);
+        if (!c) return;
+        S.pendingPickId = captionId;
+        document.getElementById('confirmText').textContent = `Draft ${c.corps} — ${c.section} (${c.score.toFixed(1)})?`;
+        document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+        S.pendingPickId = null;
+        document.getElementById('confirmModal').classList.add('hidden');
+    }
+
+    document.getElementById('confirmCancel').addEventListener('click', closeConfirmModal);
+    document.getElementById('confirmPick').addEventListener('click', () => {
+        if (S.pendingPickId && S.socket) {
+            S.socket.emit('make-pick', { leagueId: S.leagueId, captionId: S.pendingPickId });
+            closeConfirmModal();
+        }
+    });
+
+    function renderMyRoster() {
+        const ul = document.getElementById('my-roster');
+        ul.innerHTML = SECTIONS.map(section => {
+            const pick = S.myPicks.find(p => {
+                const c = getCaption(p.captionId);
+                return c && c.section === section;
+            });
+            const c = pick ? getCaption(pick.captionId) : null;
+            return `
+                <li class="roster-slot">
+                    <span class="slot-section">${section}</span>
+                    ${c ? `<span class="slot-value" style="color:${c.color}">${c.corps}</span>` : '<span class="slot-empty">Empty</span>'}
+                </li>
+            `;
+        }).join('');
+    }
+
+    function renderPickLog() {
+        const log = document.getElementById('pick-log');
+        if (S.allPicks.length === 0) {
+            log.innerHTML = '<div style="color:var(--color-text-muted);font-size:0.82rem;text-align:center;padding:1rem 0">No picks yet</div>';
+            return;
+        }
+        log.innerHTML = [...S.allPicks].reverse().map(p => {
+            const c = getCaption(p.captionId);
+            return `
+                <div class="pick-entry">
+                    <span class="pick-num">#${p.pickNumber + 1}</span>
+                    <span class="pick-user">${p.username}</span>
+                    <span class="pick-caption">${c ? captionLabel(c) : p.captionId}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderAllTeams() {
+        const body = document.getElementById('all-teams-body');
+        body.innerHTML = Object.entries(S.allTeams).map(([userId, team]) => `
+            <div class="team-block">
+                <div class="team-block-name">${team.teamName || team.username}</div>
+                ${SECTIONS.map(section => {
+                    const captionId = team.picks.find(id => {
+                        const c = getCaption(id);
+                        return c && c.section === section;
+                    });
+                    const c = captionId ? getCaption(captionId) : null;
+                    return `<div style="font-size:0.78rem;color:${c ? 'var(--color-text-secondary)' : 'rgba(255,255,255,0.2)'};padding:0.18rem 0">
+                        <span style="color:var(--color-text-muted)">${section}:</span> ${c ? c.corps : '—'}
+                    </div>`;
+                }).join('')}
+            </div>
+        `).join('');
+    }
+
+    function updateTurnBanner(data) {
+        S.currentTurnUserId = data.currentUserId;
+        const isMe = data.currentUserId === S.currentUser.id;
+        const banner = document.getElementById('turn-banner');
+        banner.className = `turn-banner${isMe ? ' my-turn' : ''}`;
+
+        const member = S.members.find(m => m.user_id === data.currentUserId);
+        const name = member ? member.username : `User #${data.currentUserId}`;
+        document.getElementById('turn-player').textContent = isMe ? `Your Turn!` : `${name}'s Turn`;
+        document.getElementById('turn-round').textContent = `Round ${data.round}, Pick ${data.pickInRound} of ${data.totalPlayers}`;
+
+        // Reset timer display — server will send timer-tick events
+        const timerEl = document.getElementById('turn-timer');
+        timerEl.textContent = 'Unlimited';
+        timerEl.className = 'turn-timer unlimited';
+
+        // Re-render grid so click handlers update
+        renderCaptionGrid();
+    }
+
+    function startClientTimer(seconds) {
+        const timerEl = document.getElementById('turn-timer');
+        let remaining = seconds;
+
+        if (S.timerInterval) clearInterval(S.timerInterval);
+
+        if (seconds === 'unlimited' || seconds === null) {
+            timerEl.textContent = 'Unlimited';
+            timerEl.className = 'turn-timer unlimited';
+            return;
+        }
+
+        function tick() {
+            timerEl.textContent = remaining;
+            timerEl.className = `turn-timer ${remaining <= 10 ? 'low' : 'normal'}`;
+            if (remaining <= 0) clearInterval(S.timerInterval);
+            remaining--;
+        }
+        tick();
+        S.timerInterval = setInterval(tick, 1000);
+    }
+
+    // ── Phase 4: Complete ─────────────────────────────────────────────────────
+    async function loadCompletePhase() {
+        showPhase('complete');
+
+        // Load picks
+        try {
+            const d = await api.request(`/draft/${S.leagueId}/picks`);
+            const teams = {};
+            for (const m of S.members) {
+                teams[m.user_id] = { username: m.username, teamName: m.team_name, picks: [], score: 0 };
+            }
+            for (const pick of d.picks) {
+                if (teams[pick.user_id]) {
+                    const c = getCaption(pick.caption_id);
+                    teams[pick.user_id].picks.push(pick.caption_id);
+                    if (c) teams[pick.user_id].score += c.score;
+                }
+            }
+
+            // Standings
+            const sorted = Object.values(teams).sort((a, b) => b.score - a.score);
+            document.getElementById('standings-body').innerHTML = sorted.map((t, i) => `
+                <tr class="${i === 0 ? 'rank-1' : ''}">
+                    <td>${i + 1}</td>
+                    <td>${t.teamName || t.username}</td>
+                    <td>${t.score.toFixed(1)}</td>
+                </tr>
+            `).join('');
+
+            // Final rosters
+            document.getElementById('final-teams').innerHTML = Object.values(teams).map(t => `
+                <div class="card" style="margin:0">
+                    <div class="card-title">${t.teamName || t.username}</div>
+                    ${SECTIONS.map(section => {
+                        const captionId = t.picks.find(id => { const c = getCaption(id); return c && c.section === section; });
+                        const c = captionId ? getCaption(captionId) : null;
+                        return `<div style="font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between">
+                            <span style="color:var(--color-text-muted)">${section}</span>
+                            <span style="color:${c ? c.color : 'rgba(255,255,255,0.2)'}">${c ? c.corps : '—'}</span>
+                        </div>`;
+                    }).join('')}
+                    <div style="font-size:0.82rem;padding:0.45rem 0 0;font-weight:700;text-align:right;color:var(--color-accent-primary)">
+                        Total: ${t.score.toFixed(1)}
+                    </div>
+                </div>
+            `).join('');
+        } catch (_) {}
+    }
+
+    // ── Socket.io ─────────────────────────────────────────────────────────────
+    function connectSocket() {
+        if (S.socket) return;
+
+        S.socket = io({ withCredentials: true });
+
+        S.socket.on('connect', () => {
+            console.log('[Socket] Connected');
+            S.socket.emit('join-lobby', S.leagueId);
+        });
+
+        S.socket.on('connect_error', (err) => {
+            console.error('[Socket] Connection error:', err.message);
+            showToast('Connection error — retrying...', 'error');
+        });
+
+        S.socket.on('lobby-state', (state) => {
+            S.lobbyPlayers = state.players;
+            renderLobbyPlayers(state.players);
+        });
+
+        S.socket.on('player-joined', (data) => {
+            // lobby-state will follow — just show toast
+            if (data.userId !== S.currentUser.id) {
+                showToast(`${data.username} joined the lobby`);
+            }
+        });
+
+        S.socket.on('player-disconnected', (data) => {
+            showToast(`${data.username} disconnected`, 'error');
+        });
+
+        S.socket.on('player-ready-changed', (data) => {
+            // lobby-state will follow
+        });
+
+        S.socket.on('draft-started', async (data) => {
+            showToast('Draft started!', 'success');
+            await loadDraftPhase();
+        });
+
+        S.socket.on('turn-changed', (data) => {
+            if (S.timerInterval) clearInterval(S.timerInterval);
+            document.getElementById('pause-banner').style.display = 'none';
+            updateTurnBanner(data);
+        });
+
+        S.socket.on('timer-tick', (seconds) => {
+            startClientTimer(seconds);
+        });
+
+        S.socket.on('pick-made', (data) => {
+            const c = getCaption(data.captionId);
+            S.draftedCaptions[data.captionId] = { userId: data.userId, username: data.username };
+            S.allPicks.push(data);
+
+            if (!S.allTeams[data.userId]) S.allTeams[data.userId] = { username: data.username, teamName: '', picks: [] };
+            S.allTeams[data.userId].picks.push(data.captionId);
+
+            if (data.userId === S.currentUser.id) {
+                S.myPicks.push({ captionId: data.captionId, section: data.section });
+                renderMyRoster();
+            }
+
+            renderPickLog();
+            renderCaptionGrid();
+
+            if (c) showToast(`${data.username} drafted ${captionLabel(c)}`);
+        });
+
+        S.socket.on('draft-completed', async () => {
+            if (S.timerInterval) clearInterval(S.timerInterval);
+            if (S.heartbeatInterval) clearInterval(S.heartbeatInterval);
+            await loadCompletePhase();
+        });
+
+        S.socket.on('draft-paused', (data) => {
+            document.getElementById('pause-banner').style.display = 'flex';
+            document.getElementById('pause-msg').textContent =
+                `Draft paused — ${data.username || 'a player'} disconnected. Waiting up to 2 minutes to reconnect...`;
+        });
+
+        S.socket.on('reconnect-countdown', (data) => {
+            const mins = Math.floor(data.seconds / 60);
+            const secs = data.seconds % 60;
+            document.getElementById('pause-msg').textContent =
+                `${data.username} disconnected — auto-pick in ${mins}:${String(secs).padStart(2,'0')}`;
+        });
+
+        S.socket.on('draft-resumed', (data) => {
+            document.getElementById('pause-banner').style.display = 'none';
+            showToast(`${data.username || 'Player'} reconnected — draft resumed`, 'success');
+        });
+
+        S.socket.on('error', (data) => {
+            showToast(data.message || 'An error occurred', 'error');
+        });
+    }
+
+    // ── Invite helper ─────────────────────────────────────────────────────────
+    async function setupInviteButton(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const btn = document.getElementById(btnId);
+
+        // Pre-fetch invite link
+        try {
+            const d = await api.request(`/leagues/${S.leagueId}/invite`, { method: 'POST' });
+            input.value = d.inviteUrl;
+        } catch (_) {
+            input.value = 'Could not generate link';
+        }
+
+        btn.addEventListener('click', () => {
+            if (!input.value || input.value === 'Could not generate link') return;
+            navigator.clipboard.writeText(input.value).then(() => {
+                showToast('Invite link copied!', 'success');
+            }).catch(() => {
+                input.select();
+                document.execCommand('copy');
+                showToast('Invite link copied!', 'success');
+            });
+        });
+    }
+
+    // ── Start ─────────────────────────────────────────────────────────────────
+    init();
+    </script>
+</body>
+</html>

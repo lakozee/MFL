@@ -14,11 +14,14 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     profile_picture_url TEXT DEFAULT '/default-avatar.png',
     created_at TIMESTAMP DEFAULT NOW(),
-    last_login TIMESTAMP
+    last_login TIMESTAMP,
+    username VARCHAR(50) UNIQUE,
+    is_admin BOOLEAN DEFAULT FALSE
 );
 
 -- Create index on email for faster lookups
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
 
 -- Leagues table
 CREATE TABLE leagues (
@@ -100,7 +103,9 @@ CREATE TABLE competitions (
     name VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
     location VARCHAR(255),
-    season INTEGER DEFAULT 2025
+    season INTEGER DEFAULT 2025,
+    source_url TEXT,
+    last_synced_at TIMESTAMP
 );
 
 -- Individual competition scores
@@ -113,7 +118,8 @@ CREATE TABLE competition_scores (
     guard DECIMAL(4,2),
     ge DECIMAL(4,2),
     visual DECIMAL(4,2),
-    total_score DECIMAL(5,2)
+    total_score DECIMAL(5,2),
+    UNIQUE (competition_id, corps_name)
 );
 
 -- Create indexes for better query performance

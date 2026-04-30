@@ -249,7 +249,59 @@ router.get('/:id/members', authenticateToken, async (req, res) => {
     }
 });
 
-module.exports = router;
+// Open draft lobby (creator only)
+router.post('/:id/open-lobby', authenticateToken, async (req, res) => {
+    try {
+        const leagueId = req.params.id;
+        const userId = req.user.userId;
+        const { turnTimer } = req.body; // optional: seconds per turn (null = unlimited)
+
+        // Verify user is the creator
+        const leagueResult = await db.query(
+            'SELECT * FROM leagues WHERE id = $1',
+            [leagueId]
+        );
+
+        if (leagueResult.rows.length === 0) {
+            return res.status(404).json({ error: 'League not found' });
+        }
+
+        const league = leagueResult.rows[0];
+
+        if (league.creator_id !== userId) {
+            return res.status(403).json({ error: 'Only the league creator can open the lobby' });
+        }
+
+        if (league.draft_started) {
+            return res.status(400).json({ error: 'Draft has already started' });
+        }
+
+        if (league.draft_completed) {
+            return res.status(400).json({ error: 'Draft has already completed' });
+        }
+
+        // Set timer if provided
+        const timerValue = (turnTimer && parseInt(turnTimer) > 0) ? parseInt(turnTimer) : null;
+
+        // Open the lobby and store timer setting
+        const updated = await db.query(
+            'UPDATE leagues SET draft_lobby_open = TRUE, turn_timer_seconds = $1 WHERE id = $2 RETURNING *',
+            [timerValue, leagueId]
+        );
+
+        // Pre-create draft_sessions rows for all existing members
+        await db.query(`
+            INSERT INTO draft_sessions (league_id, user_id)
+            SELECT $1, user_id FROM league_members WHERE league_id = $1
+            ON CONFLICT (league_id, user_id) DO NOTHING
+        `, [leagueId]);
+
+        res.json({ message: 'Lobby opened', league: updated.rows[0] });
+    } catch (error) {
+        console.error('Open lobby error:', error);
+        res.status(500).json({ error: 'Failed to open lobby' });
+    }
+});
 
 // Leave league
 router.post('/:id/leave', authenticateToken, async (req, res) => {

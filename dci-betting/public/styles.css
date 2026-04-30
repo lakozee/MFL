@@ -285,6 +285,22 @@ h3 {
     opacity: 1;
 }
 
+.dropdown-item--admin {
+    color: #f59e0b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 4px;
+    padding-bottom: 10px;
+}
+
+.dropdown-item--admin svg {
+    opacity: 0.8;
+}
+
+.dropdown-item--admin:hover {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.1);
+}
+
 /* ===== LEAGUE INFO BADGE ===== */
 .league-badge {
     display: flex;

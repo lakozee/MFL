@@ -1,3 +1,4 @@
+const http = require('http');
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
@@ -12,7 +13,10 @@ const leaguesRoutes = require('./routes/leagues');
 const teamsRoutes = require('./routes/teams');
 const draftRoutes = require('./routes/draft');
 const statsRoutes = require('./routes/stats');
+const adminRoutes = require('./routes/admin');
 const { optionalAuth } = require('./middleware/auth');
+const { setupDraftSocket } = require('./socket/draftSocket');
+const { pool } = require('../database/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,6 +61,7 @@ app.use('/api/leagues', leaguesRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/draft', draftRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../public')));
@@ -83,7 +88,7 @@ app.get('/invite/:token', (req, res) => {
 });
 
 app.get('/league/:id', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/app.html'));
+    res.sendFile(path.join(__dirname, '../public/draft.html'));
 });
 
 app.get('/app', (req, res) => {
@@ -102,6 +107,10 @@ app.get('/scores', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/scores.html'));
 });
 
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
@@ -117,10 +126,14 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server with socket.io
+const server = http.createServer(app);
+setupDraftSocket(server, pool);
+
+server.listen(PORT, () => {
     console.log(`\n✓ Fantasy DCI server running on http://localhost:${PORT}`);
     console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log('✓ Socket.io draft system active');
     console.log('\nAPI Endpoints:');
     console.log('  POST /api/auth/register - Create account');
     console.log('  POST /api/auth/login - Login');
