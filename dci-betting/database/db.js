@@ -1,39 +1,31 @@
 const { Pool } = require('pg');
-require('dotenv').config();
 
-// Create connection pool
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 5000,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test connection
 pool.on('connect', () => {
-    console.log('✓ Connected to PostgreSQL database');
+    console.log('[db] Connected to PostgreSQL');
 });
 
+// Log pool errors but do NOT exit — let Express keep running and return 500s
 pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    console.error('[db] Unexpected pool error:', err.message);
 });
 
-// Helper function for parameterized queries (prevents SQL injection)
 const query = async (text, params) => {
-    const start = Date.now();
     try {
-        const res = await pool.query(text, params);
-        const duration = Date.now() - start;
-        console.log('Executed query', { text, duration, rows: res.rowCount });
-        return res;
+        return await pool.query(text, params);
     } catch (error) {
-        console.error('Database query error:', error);
+        console.error('[db] Query error:', error.message, '|', text.slice(0, 120));
         throw error;
     }
 };
 
-// Transaction helper
 const transaction = async (callback) => {
     const client = await pool.connect();
     try {
@@ -49,8 +41,4 @@ const transaction = async (callback) => {
     }
 };
 
-module.exports = {
-    query,
-    transaction,
-    pool
-};
+module.exports = { query, transaction, pool };

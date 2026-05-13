@@ -224,8 +224,30 @@ function dedupe(competitions) {
     });
 }
 
+/**
+ * Detect whether a competition is a named championship event.
+ * Returns 'championship' for the seven qualifying named shows,
+ * 'regular' for all other competitions.
+ */
+function detectCompetitionType(name) {
+    const n = name.toLowerCase();
+    if (
+        n.includes('san antonio') ||
+        n.includes('southeastern') ||
+        n.includes('midwestern') ||
+        n.includes('allentown') ||
+        n.includes('prelim') ||
+        n.includes('semi') ||
+        (n.includes('finals') && !n.includes('semi') && !n.includes('prelim'))
+    ) {
+        return 'championship';
+    }
+    return 'regular';
+}
+
 module.exports = {
     scrapeCompetitionList,
     scrapeCompetitionScores,
+    detectCompetitionType,
     DCI_SCORES_URL,
 };

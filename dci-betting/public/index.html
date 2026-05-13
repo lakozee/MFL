@@ -23,15 +23,10 @@
         <div class="container">
             <div class="header-content">
                 <a href="/" class="logo-link">
-                    <div class="logo">Marching Fantasy League</div>
+                    <img src="/images/mfl-logo.png" alt="MFL" class="logo-img">
                 </a>
 
-                <!-- Auth Box for Non-Logged In Users -->
-                <div class="auth-box" id="authBox">
-                    <p class="auth-box-text">Have an account?</p>
-                    <a href="/auth" class="btn btn-secondary btn-sm">Login</a>
-                    <a href="/auth?mode=register" class="btn btn-primary btn-sm">Create Account</a>
-                </div>
+                <!-- Nav.js injects auth state here -->
             </div>
         </div>
     </header>
@@ -40,7 +35,7 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1 class="hero-title">March. Draft. Win.</h1>
+                <img src="/images/mfl-logo.png" alt="Marching Fantasy League" class="hero-logo">
                 <p class="hero-subtitle">Build your dream DCI World Class team and compete with friends</p>
                 <div class="hero-cta">
                     <a href="/auth?mode=register" class="btn btn-primary btn-lg">Start Drafting</a>
@@ -173,8 +168,7 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-brand">
-                    <div class="logo">Marching Fantasy League</div>
-                    <p>March. Draft. Win.</p>
+                    <img src="/images/mfl-logo.png" alt="MFL" class="footer-logo-img">
                 </div>
                 <div class="footer-links">
                     <a href="/scores">Scores</a>
@@ -188,23 +182,11 @@
     <!-- JavaScript -->
     <script src="api.js"></script>
     <script src="utils/avatar.js"></script>
+    <script src="nav.js"></script>
     <script>
         // Check if user is logged in
         async function initLandingPage() {
-            try {
-                const user = await api.verifySession();
-
-                if (user) {
-                    // User is logged in - redirect to app
-                    window.location.href = '/app';
-                    return;
-                }
-            } catch (error) {
-                // User not logged in - stay on landing page
-                console.log('User not logged in, showing landing page');
-            }
-
-            // Load stats for landing page
+            // Load stats regardless of login state
             loadStats();
         }
 

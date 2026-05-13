@@ -221,6 +221,9 @@ function switchView(viewName) {
         if (nav) nav.classList.remove('active');
     });
 
+    // Sync global nav injected by nav.js
+    if (typeof syncGlobalNav === 'function') syncGlobalNav(viewName);
+
     // Show selected view and activate nav
     switch (viewName) {
         case 'leagueSetup':
@@ -900,13 +903,44 @@ async function loadMyLeagueData() {
 }
 
 // ===== INITIALIZATION =====
+
+// Load live caption scores from the DB and update state.allCaptions
+async function loadCaptionScores() {
+    try {
+        const data = await api.request('/stats/corps');
+        const sectionMap = {
+            'Brass': 'avg_brass',
+            'Percussion': 'avg_percussion',
+            'Color Guard': 'avg_guard',
+            'General Effect': 'avg_ge',
+            'Visual Performance': 'avg_visual'
+        };
+        data.corps.forEach(c => {
+            state.allCaptions.forEach(cap => {
+                if (cap.corps === c.corps_name) {
+                    const field = sectionMap[cap.section];
+                    if (field && c[field] != null) {
+                        cap.score = parseFloat(c[field]) || 0;
+                    }
+                }
+            });
+        });
+    } catch (e) {
+        // Fall back to hardcoded scores silently
+        console.warn('Could not load live caption scores:', e.message);
+    }
+}
+
 async function init() {
+    // Load live scores from DB (falls back to hardcoded if unavailable)
+    await loadCaptionScores();
+
     // Try to load existing league data
     const hasLeague = await loadMyLeagueData();
 
     if (hasLeague) {
-        // User has a league, go to draft view
-        switchView('draft');
+        const urlView = new URLSearchParams(window.location.search).get('view');
+        switchView(urlView || 'draft');
         if (state.draftInProgress) {
             renderDraftView();
         }

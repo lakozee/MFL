@@ -4,9 +4,9 @@
     "description": "Fantasy draft platform for Drum Corps International",
     "main": "server/server.js",
     "scripts": {
-        "start": "node server/server.js",
+        "start": "node init-db.js && node server/server.js",
         "dev": "nodemon server/server.js",
-        "db:setup": "psql -U postgres -f database/schema.sql"
+        "db:setup": "node init-db.js"
     },
     "keywords": [
         "dci",

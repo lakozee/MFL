@@ -5,7 +5,6 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
-require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
@@ -20,6 +19,7 @@ const { pool } = require('../database/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Security middleware
 app.use(helmet({
@@ -28,31 +28,42 @@ app.use(helmet({
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100
 });
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5 // 5 login attempts per 15 minutes
+    max: 5
 });
 
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/', limiter);
 
-// CORS configuration
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-        ? 'https://yourdomain.com'
-        : 'http://localhost:3000',
-    credentials: true
-}));
+// CORS — in production the frontend is served by this same Express process,
+// so cross-origin requests only come from explicit integrations.
+// Set ALLOWED_ORIGIN on Railway if you have a separate frontend domain.
+const allowedOrigin = isProduction
+    ? (process.env.ALLOWED_ORIGIN || false)
+    : 'http://localhost:3000';
 
-// Body parsing middleware
+if (allowedOrigin) {
+    app.use(cors({
+        origin: allowedOrigin,
+        credentials: true
+    }));
+}
+
+// Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Health check (for Railway and uptime monitors)
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -66,7 +77,7 @@ app.use('/api/admin', adminRoutes);
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Optional auth for static pages (to customize based on login state)
+// Page routes
 app.get('/', optionalAuth, (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
@@ -91,10 +102,6 @@ app.get('/league/:id', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/draft.html'));
 });
 
-app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/app.html'));
-});
-
 app.get('/stats', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/stats.html'));
 });
@@ -116,29 +123,22 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
 });
 
-// Error handler
+// Global error handler — catches all unhandled errors from route/middleware
 app.use((err, req, res, next) => {
-    console.error('Error:', err);
+    console.error('[server] Unhandled error:', err.stack || err.message || err);
     res.status(500).json({
-        error: process.env.NODE_ENV === 'production'
-            ? 'Internal server error'
-            : err.message
+        error: isProduction ? 'Internal server error' : err.message
     });
 });
 
-// Start server with socket.io
+// Start server — bind to 0.0.0.0 so Railway can route external traffic
 const server = http.createServer(app);
 setupDraftSocket(server, pool);
 
-server.listen(PORT, () => {
-    console.log(`\n✓ Fantasy DCI server running on http://localhost:${PORT}`);
-    console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log('✓ Socket.io draft system active');
-    console.log('\nAPI Endpoints:');
-    console.log('  POST /api/auth/register - Create account');
-    console.log('  POST /api/auth/login - Login');
-    console.log('  POST /api/auth/logout - Logout');
-    console.log('  GET  /api/auth/verify - Verify session\n');
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[server] Fantasy DCI running on port ${PORT}`);
+    console.log(`[server] Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log('[server] Socket.io draft system active');
 });
 
 module.exports = app;

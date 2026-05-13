@@ -32,7 +32,31 @@ class NavigationManager {
     authSection.className = 'auth-section';
 
     if (this.currentUser) {
-      // User is logged in - show profile dropdown
+      // Always inject the same nav for logged-in users
+      const isAppPage = window.location.pathname === '/app';
+      const isScoresPage = window.location.pathname === '/scores';
+      const appNav = document.createElement('nav');
+      appNav.className = 'main-nav global-nav';
+
+      if (isAppPage) {
+        appNav.innerHTML = `
+          <button class="nav-item active" id="gNavDraft" onclick="globalNavClick(this,'draft')">Draft</button>
+          <button class="nav-item" id="gNavMyTeam" onclick="globalNavClick(this,'myTeam')">My Team</button>
+          <button class="nav-item" id="gNavTrade" onclick="globalNavClick(this,'trade')">Trade</button>
+          <button class="nav-item" id="gNavStandings" onclick="globalNavClick(this,'standings')">Standings</button>
+          <a href="/scores" class="nav-item">Scores</a>
+        `;
+      } else {
+        appNav.innerHTML = `
+          <a href="/app" class="nav-item">Draft</a>
+          <a href="/app?view=myTeam" class="nav-item">My Team</a>
+          <a href="/app?view=trade" class="nav-item">Trade</a>
+          <a href="/app?view=standings" class="nav-item">Standings</a>
+          <a href="/scores" class="nav-item${isScoresPage ? ' active' : ''}">Scores</a>
+        `;
+      }
+      headerContent.appendChild(appNav);
+
       // Generate avatar if no custom picture
       const avatarUrl = (this.currentUser.profile_picture_url && this.currentUser.profile_picture_url !== '/default-avatar.png')
         ? this.currentUser.profile_picture_url
@@ -131,3 +155,16 @@ if (document.readyState === 'loading') {
 } else {
   nav = new NavigationManager();
 }
+
+// Called by nav buttons on /app to switch view + update active state
+window.globalNavClick = function(btn, viewName) {
+  if (typeof switchView === 'function') switchView(viewName);
+};
+
+// Called by app.js switchView to keep global nav in sync
+window.syncGlobalNav = function(viewName) {
+  const map = { draft: 'gNavDraft', myTeam: 'gNavMyTeam', trade: 'gNavTrade', standings: 'gNavStandings' };
+  document.querySelectorAll('.global-nav .nav-item').forEach(n => n.classList.remove('active'));
+  const el = document.getElementById(map[viewName]);
+  if (el) el.classList.add('active');
+};
