@@ -603,6 +603,16 @@
             justify-content: center;
         }
 
+        .score-input {
+            width: 70px;
+            padding: 4px 6px;
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            background: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+        }
+
         /* spinning icon for sync in progress */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinning { animation: spin 0.8s linear infinite; display: inline-block; }
@@ -906,7 +916,10 @@
         <div class="scores-below">
             <div class="section-header">
                 <h2 class="section-title">Competitions</h2>
-                <button class="btn btn-secondary btn-sm" id="refresh-comps-btn">Refresh</button>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-primary btn-sm" id="add-comp-btn">+ Add Competition</button>
+                    <button class="btn btn-secondary btn-sm" id="refresh-comps-btn">Refresh</button>
+                </div>
             </div>
             <div id="comp-list-container">
                 <div class="loading"><div class="spinner"></div> Loading…</div>
@@ -918,6 +931,55 @@
 
 <!-- ── Toast Container ─────────────────────────────────────────────── -->
 <div id="toast-container"></div>
+
+<!-- ── Add Competition Modal ───────────────────────────────────────── -->
+<div class="modal-overlay" id="add-comp-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Competition / Event</h3>
+            <button class="modal-close" data-close="add-comp-modal">&times;</button>
+        </div>
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="add-comp-name" placeholder="e.g. DCI San Antonio">
+        </div>
+        <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="add-comp-date">
+        </div>
+        <div class="form-group">
+            <label>Location</label>
+            <input type="text" id="add-comp-location" placeholder="e.g. San Antonio, TX">
+        </div>
+        <div class="form-group">
+            <label>Type</label>
+            <select id="add-comp-type">
+                <option value="regular">Regular</option>
+                <option value="championship">Qualifying / Championship</option>
+            </select>
+        </div>
+        <div class="form-footer">
+            <button class="btn btn-secondary" data-close="add-comp-modal">Cancel</button>
+            <button class="btn btn-primary" id="save-add-comp-btn">Add Competition</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Edit Scores Modal ────────────────────────────────────────────── -->
+<div class="modal-overlay" id="edit-scores-modal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 class="modal-title" id="edit-scores-modal-title">Edit Scores</h3>
+            <button class="modal-close" data-close="edit-scores-modal">&times;</button>
+        </div>
+        <input type="hidden" id="edit-scores-comp-id">
+        <div id="edit-scores-body"></div>
+        <div class="form-footer">
+            <button class="btn btn-secondary" data-close="edit-scores-modal">Cancel</button>
+            <button class="btn btn-primary" id="save-scores-btn">Save Scores</button>
+        </div>
+    </div>
+</div>
 
 <!-- ── Edit User Modal ─────────────────────────────────────────────── -->
 <div class="modal-overlay" id="edit-user-modal">
@@ -1545,6 +1607,7 @@ function renderCompetitionList() {
             <div class="comp-item-actions">
                 ${syncedLabel}
                 <button class="btn btn-secondary btn-sm" onclick="toggleCompType(${c.id}, '${isChamp ? 'regular' : 'championship'}')">${toggleLabel}</button>
+                <button class="btn btn-secondary btn-sm" onclick="openEditScores(${c.id}, '${escHtml(c.name)}')">Edit Scores</button>
                 <button class="btn btn-secondary btn-sm" id="sync-btn-${c.id}" onclick="syncOne(${c.id}, '${escHtml(c.name)}')">
                     <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     Sync
@@ -1644,6 +1707,107 @@ async function deleteCompetition(id, name) {
 document.getElementById('refresh-comps-btn').addEventListener('click', async () => {
     await Promise.all([loadCompetitions(), loadCorps()]);
     showToast('Refreshed', 'info');
+});
+
+// ── Add Competition ────────────────────────────────────────────────────────────
+document.getElementById('add-comp-btn').addEventListener('click', () => {
+    document.getElementById('add-comp-name').value = '';
+    document.getElementById('add-comp-date').value = '';
+    document.getElementById('add-comp-location').value = '';
+    document.getElementById('add-comp-type').value = 'regular';
+    openModal('add-comp-modal');
+});
+
+document.getElementById('save-add-comp-btn').addEventListener('click', async () => {
+    const name = document.getElementById('add-comp-name').value.trim();
+    const date = document.getElementById('add-comp-date').value;
+    const location = document.getElementById('add-comp-location').value.trim();
+    const competition_type = document.getElementById('add-comp-type').value;
+
+    if (!name || !date) {
+        showToast('Name and date are required', 'error');
+        return;
+    }
+
+    try {
+        const comp = await api('POST', '/api/admin/competitions', { name, date, location, season: 2025 });
+        if (competition_type === 'championship') {
+            await api('PUT', `/api/admin/competitions/${comp.id}/type`, { competition_type: 'championship' });
+        }
+        showToast(`Added: ${name}`, 'success');
+        closeModal('add-comp-modal');
+        await loadCompetitions();
+    } catch (e) {
+        showToast('Failed to add competition: ' + e.message, 'error');
+    }
+});
+
+// ── Edit Scores ───────────────────────────────────────────────────────────────
+function openEditScores(compId, compName) {
+    document.getElementById('edit-scores-comp-id').value = compId;
+    document.getElementById('edit-scores-modal-title').textContent = `Edit Scores — ${compName}`;
+
+    const comp = allCompetitions.find(c => c.id === compId);
+    const existingScores = Array.isArray(comp && comp.scores) ? comp.scores : [];
+
+    const rows = CORPS_LIST.map(corps => {
+        const s = existingScores.find(x => x.corps_name === corps) || {};
+        const val = (field) => s[field] != null ? parseFloat(s[field]).toFixed(2) : '';
+        return `<tr>
+            <td style="padding:6px 8px;font-weight:600">${escHtml(corps)}</td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="brass" value="${val('brass')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="percussion" value="${val('percussion')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="guard" value="${val('guard')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="ge" value="${val('ge')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="visual" value="${val('visual')}" placeholder="—"></td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('edit-scores-body').innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:0.875rem">
+            <thead>
+                <tr style="color:var(--color-text-muted);text-align:left">
+                    <th style="padding:6px 8px">Corps</th>
+                    <th style="padding:6px 8px">Brass</th>
+                    <th style="padding:6px 8px">Percussion</th>
+                    <th style="padding:6px 8px">Guard</th>
+                    <th style="padding:6px 8px">GE</th>
+                    <th style="padding:6px 8px">Visual</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <p style="font-size:0.8rem;color:var(--color-text-muted);margin-top:10px">Leave fields blank to omit a corps from scores.</p>
+    `;
+
+    openModal('edit-scores-modal');
+}
+
+document.getElementById('save-scores-btn').addEventListener('click', async () => {
+    const compId = document.getElementById('edit-scores-comp-id').value;
+    const inputs = document.querySelectorAll('#edit-scores-body .score-input');
+
+    const scoreMap = {};
+    inputs.forEach(input => {
+        const corps = input.dataset.corps;
+        const field = input.dataset.field;
+        const val = input.value.trim();
+        if (!scoreMap[corps]) scoreMap[corps] = { corps_name: corps };
+        scoreMap[corps][field] = val !== '' ? parseFloat(val) : 0;
+    });
+
+    const scores = Object.values(scoreMap).filter(s =>
+        s.brass || s.percussion || s.guard || s.ge || s.visual
+    );
+
+    try {
+        await api('POST', `/api/admin/competitions/${compId}/scores`, { scores });
+        showToast('Scores saved', 'success');
+        closeModal('edit-scores-modal');
+        await Promise.all([loadCompetitions(), loadCorps()]);
+    } catch (e) {
+        showToast('Failed to save scores: ' + e.message, 'error');
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════════
