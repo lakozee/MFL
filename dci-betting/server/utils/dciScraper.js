@@ -15,6 +15,7 @@ const cheerio = require('cheerio');
 
 const DCI_BASE_URL = 'https://www.dci.org';
 const DCI_SCORES_URL = 'https://www.dci.org/scores';
+const DCI_EVENTS_URL = 'https://www.dci.org/events/';
 const CURRENT_SEASON = 2025;
 
 // ─── HTTP client ──────────────────────────────────────────────────────────────
@@ -245,9 +246,82 @@ function detectCompetitionType(name) {
     return 'regular';
 }
 
+// ─── Scrape events from dci.org/events/ ──────────────────────────────────────
+//
+// Returns: Array of { name, date, location, source_url, season }
+//
+async function scrapeEvents() {
+    const $ = await fetchPage(DCI_EVENTS_URL);
+    const events = [];
+
+    // ADJUST: Try common event listing selectors
+    const candidateSelectors = [
+        '[class*="event-item"]',
+        '[class*="event-card"]',
+        '[class*="event-listing"]',
+        'article[class*="event"]',
+        'li[class*="event"]',
+        '[class*="show-item"]',
+    ];
+
+    let rows = [];
+    for (const sel of candidateSelectors) {
+        rows = $(sel).toArray();
+        if (rows.length > 0) break;
+    }
+
+    // Fallback: any anchor linking to /events/ sub-pages
+    if (rows.length === 0) {
+        $('a[href*="/events/"]').each((_, el) => {
+            const href = $(el).attr('href');
+            const name = $(el).text().trim();
+            if (name && href && href !== '/events/' && href !== '/events') {
+                events.push({
+                    name,
+                    date: null,
+                    location: null,
+                    source_url: resolveUrl(href),
+                    season: CURRENT_SEASON,
+                });
+            }
+        });
+        return dedupe(events);
+    }
+
+    for (const row of rows) {
+        const el = $(row);
+
+        const name = el.find('[class*="name"], [class*="title"], h2, h3, h4').first().text().trim()
+            || el.find('a').first().text().trim();
+
+        const dateText = el.find('[class*="date"], time').first().text().trim()
+            || el.find('time').first().attr('datetime');
+
+        const location = el.find('[class*="location"], [class*="venue"], [class*="city"]').first().text().trim()
+            || null;
+
+        const href = el.find('a').first().attr('href')
+            || (el.is('a') ? el.attr('href') : null);
+
+        if (!name) continue;
+
+        events.push({
+            name,
+            date: parseDate(dateText),
+            location: location || null,
+            source_url: resolveUrl(href),
+            season: CURRENT_SEASON,
+        });
+    }
+
+    return dedupe(events);
+}
+
 module.exports = {
     scrapeCompetitionList,
     scrapeCompetitionScores,
+    scrapeEvents,
     detectCompetitionType,
     DCI_SCORES_URL,
+    DCI_EVENTS_URL,
 };

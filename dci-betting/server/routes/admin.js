@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const db = require('../../database/db');
 const { adminAuth } = require('../middleware/adminAuth');
-const { scrapeCompetitionList, scrapeCompetitionScores, detectCompetitionType } = require('../utils/dciScraper');
+const { scrapeCompetitionList, scrapeCompetitionScores, scrapeEvents, detectCompetitionType } = require('../utils/dciScraper');
 
 // Apply adminAuth to all routes in this file
 router.use(adminAuth);
@@ -565,16 +565,16 @@ async function upsertCompetitionScores(competitionId, scores) {
 }
 
 // ─── POST /api/admin/sync ─────────────────────────────────────────────────────
-// Discover all competitions from DCI, upsert them, then sync scores for each.
+// Discover all competitions + events from DCI, upsert them, then sync scores.
 router.post('/sync', async (req, res) => {
-    const results = { competitions_found: 0, competitions_imported: 0, scores_synced: 0, errors: [] };
+    const results = { competitions_found: 0, competitions_imported: 0, scores_synced: 0, events_found: 0, events_imported: 0, errors: [] };
     try {
+        // Sync competitions and scores
         const competitions = await scrapeCompetitionList();
         results.competitions_found = competitions.length;
 
         for (const comp of competitions) {
             try {
-                // Upsert competition by name + season
                 const compType = detectCompetitionType(comp.name);
                 const upsert = await db.query(
                     `INSERT INTO competitions (name, date, location, season, source_url, competition_type)
@@ -590,7 +590,6 @@ router.post('/sync', async (req, res) => {
                 const competitionId = upsert.rows[0].id;
                 results.competitions_imported++;
 
-                // Sync scores if we have a URL
                 if (comp.source_url) {
                     const scores = await scrapeCompetitionScores(comp.source_url);
                     if (scores.length > 0) {
@@ -605,6 +604,33 @@ router.post('/sync', async (req, res) => {
             } catch (err) {
                 results.errors.push({ competition: comp.name, error: err.message });
             }
+        }
+
+        // Sync events from dci.org/events/ into the competitions table
+        try {
+            const events = await scrapeEvents();
+            results.events_found = events.length;
+
+            for (const ev of events) {
+                try {
+                    const compType = detectCompetitionType(ev.name);
+                    await db.query(
+                        `INSERT INTO competitions (name, date, location, season, source_url, competition_type)
+                         VALUES ($1, $2, $3, $4, $5, $6)
+                         ON CONFLICT (name, season) DO UPDATE SET
+                           date = COALESCE(EXCLUDED.date, competitions.date),
+                           location = COALESCE(EXCLUDED.location, competitions.location),
+                           source_url = COALESCE(EXCLUDED.source_url, competitions.source_url),
+                           competition_type = EXCLUDED.competition_type`,
+                        [ev.name, ev.date, ev.location, ev.season, ev.source_url, compType]
+                    );
+                    results.events_imported++;
+                } catch (err) {
+                    results.errors.push({ competition: ev.name, error: err.message });
+                }
+            }
+        } catch (err) {
+            results.errors.push({ competition: 'events scrape', error: err.message });
         }
 
         await recalculateCorpsAverages();

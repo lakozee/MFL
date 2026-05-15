@@ -1591,7 +1591,9 @@ document.getElementById('sync-all-btn').addEventListener('click', async () => {
             <strong style="color:var(--color-success)">Sync complete</strong><br>
             Competitions found: ${result.competitions_found}<br>
             Imported / updated: ${result.competitions_imported}<br>
-            Scores synced: ${result.scores_synced}
+            Scores synced: ${result.scores_synced}<br>
+            Events found: ${result.events_found}<br>
+            Events imported: ${result.events_imported}
             ${result.errors && result.errors.length ? `<br><span style="color:var(--color-warning)">${result.errors.length} error(s): ${result.errors.map(e => escHtml(e.competition)).join(', ')}</span>` : ''}
         `;
         showToast(`Sync complete — ${result.competitions_found} competitions found`, 'success');
