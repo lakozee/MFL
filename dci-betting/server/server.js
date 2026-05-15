@@ -21,6 +21,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Trust Railway's proxy so rate limiting and IP detection work correctly
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
     contentSecurityPolicy: false // Allow inline scripts for development
