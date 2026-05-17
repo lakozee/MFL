@@ -1698,3 +1698,85 @@ h3 {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
+
+/* ── Scoring Explainer Section ─────────────────────────────────────────────── */
+#scoring-explainer {
+  padding: 80px 0;
+  background: var(--color-bg-secondary);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.scoring-explainer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+}
+
+@media (max-width: 768px) {
+  .scoring-explainer-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+.scoring-block {
+  background: var(--color-bg-primary);
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.scoring-block-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.scoring-block-intro {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+.scoring-block-label {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.scoring-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.scoring-list li {
+  color: var(--color-text-secondary);
+  font-size: 0.93rem;
+  padding: 5px 0 5px 1.25rem;
+  position: relative;
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+
+.scoring-list li:last-child {
+  border-bottom: none;
+}
+
+.scoring-list li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--color-accent-primary);
+  font-size: 0.75rem;
+  top: 6px;
+}

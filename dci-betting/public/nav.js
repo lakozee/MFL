@@ -47,12 +47,14 @@ class NavigationManager {
           <a href="/scores" class="nav-item">Scores</a>
         `;
       } else {
+        const isHowToPlay = window.location.pathname === '/how-to-play';
         appNav.innerHTML = `
           <a href="/app" class="nav-item">Draft</a>
           <a href="/app?view=myTeam" class="nav-item">My Team</a>
           <a href="/app?view=trade" class="nav-item">Trade</a>
           <a href="/app?view=standings" class="nav-item">Standings</a>
           <a href="/scores" class="nav-item${isScoresPage ? ' active' : ''}">Scores</a>
+          <a href="/how-to-play" class="nav-item${isHowToPlay ? ' active' : ''}">How To Play</a>
         `;
       }
       headerContent.appendChild(appNav);

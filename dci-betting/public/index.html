@@ -37,11 +37,75 @@
             <div class="hero-content">
                 <img src="/images/mfl-logo.png" alt="Marching Fantasy League" class="hero-logo">
                 <p class="hero-subtitle">Build your dream DCI World Class team and compete with friends</p>
-                <div class="hero-cta">
-                    <a href="/auth?mode=register" class="btn btn-primary btn-lg">Start Drafting</a>
+                <div class="hero-cta" id="hero-cta">
+                    <!-- Populated by JS based on auth/league state -->
                     <a href="#stats" class="btn btn-secondary btn-lg">View Stats</a>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <!-- Scoring Explainer (shown to logged-out users only) -->
+    <section id="scoring-explainer" style="display:none">
+        <div class="container">
+            <div class="scoring-explainer-grid">
+
+                <div class="scoring-block">
+                    <h2 class="scoring-block-title">How MFL Scoring Works</h2>
+                    <p class="scoring-block-intro">MFL scoring is based on key performances throughout the DCI season instead of every single show.</p>
+                    <p class="scoring-block-label">Each corps earns fantasy points from:</p>
+                    <ul class="scoring-list">
+                        <li>1st performance</li>
+                        <li>3rd performance</li>
+                        <li>5th performance</li>
+                        <li>7th performance</li>
+                    </ul>
+                    <p class="scoring-block-label">Along with Major Regional Events:</p>
+                    <ul class="scoring-list">
+                        <li>Southwestern Championship</li>
+                        <li>Southeastern / Midwestern Championship</li>
+                        <li>Eastern Classic</li>
+                    </ul>
+                    <p class="scoring-block-label">And Championship Week:</p>
+                    <ul class="scoring-list">
+                        <li>DCI Prelims</li>
+                        <li>DCI Semifinals</li>
+                        <li>DCI Finals</li>
+                    </ul>
+                </div>
+
+                <div class="scoring-block">
+                    <h2 class="scoring-block-title">Scoring Breakdown</h2>
+                    <p class="scoring-block-intro">Every corps in MFL earns fantasy points using official DCI caption scores.</p>
+                    <p class="scoring-block-label">Fantasy scoring pulls from real judging categories, including:</p>
+                    <ul class="scoring-list">
+                        <li>General Effect 1</li>
+                        <li>General Effect 2</li>
+                        <li>Visual Proficiency</li>
+                        <li>Visual Analysis</li>
+                        <li>Color Guard</li>
+                        <li>Brass</li>
+                        <li>Music Analysis</li>
+                        <li>Percussion</li>
+                    </ul>
+                    <p style="margin-top:1.25rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">Each caption score is added together to create your corps' fantasy total for that performance.</p>
+                    <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">As the season progresses, your lineup continues building points across every counted event.</p>
+                    <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">At the end of the season, the fantasy team with the highest combined score wins the league.</p>
+                    <p style="margin-top:1rem;padding:0.85rem 1rem;background:rgba(47,143,78,0.07);border:1px solid rgba(47,143,78,0.2);border-radius:8px;color:var(--color-text-secondary);font-size:0.85rem;line-height:1.7"><strong style="color:var(--color-text-primary)">Finals Week note:</strong> During Finals Week, some captions use double judging panels. When two judges score the same caption, the average of those scores is used for MFL scoring.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- League Dashboard (shown when logged in + in a league) -->
+    <section class="stats-section" id="league-dashboard" style="display:none">
+        <div class="container">
+            <div class="section-header">
+                <h2 id="league-dashboard-title">Your League</h2>
+                <a href="/app" class="btn btn-primary btn-sm">Go to League</a>
+            </div>
+            <div id="league-standings-grid" class="stats-grid"></div>
         </div>
     </section>
 
@@ -152,8 +216,8 @@
         </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="cta-section">
+    <!-- CTA Section (hidden when logged in) -->
+    <section class="cta-section" id="cta-section">
         <div class="container">
             <div class="cta-content">
                 <h2>Ready to Build Your Team?</h2>
@@ -184,44 +248,117 @@
     <script src="utils/avatar.js"></script>
     <script src="nav.js"></script>
     <script>
-        // Check if user is logged in
         async function initLandingPage() {
-            // Load stats regardless of login state
-            loadStats();
+            const [user, statsData] = await Promise.all([
+                api.verifySession(),
+                fetch('/api/stats/corps?sort=score').then(r => r.json()).catch(() => null)
+            ]);
+
+            renderStats(statsData);
+
+            const heroCta = document.getElementById('hero-cta');
+
+            if (!user) {
+                // Not logged in — show Start Drafting → register + scoring explainer
+                heroCta.insertAdjacentHTML('afterbegin',
+                    '<a href="/auth?mode=register" class="btn btn-primary btn-lg">Start Drafting</a>'
+                );
+                document.getElementById('scoring-explainer').style.display = '';
+                return;
+            }
+
+            // Logged in — check leagues
+            let leagues = [];
+            try {
+                const data = await fetch('/api/leagues/my', { credentials: 'include' }).then(r => r.json());
+                leagues = data.leagues || [];
+            } catch {}
+
+            // Hide static CTA section for logged-in users
+            document.getElementById('cta-section').style.display = 'none';
+
+            if (leagues.length === 0) {
+                // In a league — show Create League button
+                heroCta.insertAdjacentHTML('afterbegin',
+                    '<a href="/app" class="btn btn-primary btn-lg">Create a League</a>'
+                );
+            } else {
+                // In a league — show league standings dashboard
+                const league = leagues[0];
+                showLeagueDashboard(league, statsData);
+            }
         }
 
-        async function loadStats() {
-            try {
-                const response = await fetch('/api/stats/corps?sort=score');
-                const data = await response.json();
+        function renderStats(data) {
+            const statsGrid = document.getElementById('statsGrid');
+            if (!data || !data.corps) {
+                statsGrid.innerHTML = '<div class="stat-card error"><p>Failed to load stats</p></div>';
+                return;
+            }
+            statsGrid.innerHTML = data.corps.slice(0, 6).map((corps, index) => `
+                <div class="stat-card">
+                    <div class="rank">#${index + 1}</div>
+                    <h3>${corps.corps_name}</h3>
+                    <div class="total-score">${parseFloat(corps.total_score || 0).toFixed(2)}</div>
+                    <div class="score-breakdown">
+                        <div class="score-item">
+                            <span class="label">Brass</span>
+                            <span class="value">${parseFloat(corps.avg_brass || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">Percussion</span>
+                            <span class="value">${parseFloat(corps.avg_percussion || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">Guard</span>
+                            <span class="value">${parseFloat(corps.avg_guard || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">GE</span>
+                            <span class="value">${parseFloat(corps.avg_ge || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">Visual</span>
+                            <span class="value">${parseFloat(corps.avg_visual || 0).toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-                const statsGrid = document.getElementById('statsGrid');
-                statsGrid.innerHTML = data.corps.slice(0, 6).map((corps, index) => `
+        async function showLeagueDashboard(league, statsData) {
+            const dashboard = document.getElementById('league-dashboard');
+            const title = document.getElementById('league-dashboard-title');
+            const grid = document.getElementById('league-standings-grid');
+
+            title.textContent = league.name + ' — Standings';
+            dashboard.style.display = '';
+
+            // Fetch members with scores
+            try {
+                const data = await fetch(`/api/leagues/${league.id}/members`, { credentials: 'include' }).then(r => r.json());
+                const members = (data.members || []).sort((a, b) => (b.team_score || 0) - (a.team_score || 0));
+
+                grid.innerHTML = members.map((m, i) => `
                     <div class="stat-card">
-                        <div class="rank">#${index + 1}</div>
-                        <h3>${corps.corps_name}</h3>
-                        <div class="total-score">${corps.total_score}</div>
+                        <div class="rank">#${i + 1}</div>
+                        <h3>${escHtml(m.team_name || m.username)}</h3>
+                        <div class="total-score">${parseFloat(m.team_score || 0).toFixed(2)}</div>
                         <div class="score-breakdown">
-                            <div class="score-item">
-                                <span class="label">Brass</span>
-                                <span class="value">${corps.avg_brass}</span>
-                            </div>
-                            <div class="score-item">
-                                <span class="label">Percussion</span>
-                                <span class="value">${corps.avg_percussion}</span>
-                            </div>
-                            <div class="score-item">
-                                <span class="label">Guard</span>
-                                <span class="value">${corps.avg_guard}</span>
+                            <div class="score-item" style="width:100%">
+                                <span class="label">Manager</span>
+                                <span class="value">${escHtml(m.username)}</span>
                             </div>
                         </div>
                     </div>
-                `).join('');
-            } catch (error) {
-                console.error('Failed to load stats:', error);
-                document.getElementById('statsGrid').innerHTML =
-                    '<div class="stat-card error"><p>Failed to load stats</p></div>';
+                `).join('') || '<div class="stat-card"><p>No members yet</p></div>';
+            } catch {
+                grid.innerHTML = '<div class="stat-card error"><p>Failed to load standings</p></div>';
             }
+        }
+
+        function escHtml(str) {
+            return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
         initLandingPage();

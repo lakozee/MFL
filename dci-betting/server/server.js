@@ -121,6 +121,10 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/admin.html'));
 });
 
+app.get('/how-to-play', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/how-to-play.html'));
+});
+
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });

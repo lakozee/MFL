@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How To Play - Marching Fantasy League</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo-link">
+                    <img src="/images/mfl-logo.png" alt="MFL" class="logo-img">
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" style="padding: 60px 0 80px">
+
+        <div style="max-width:800px;margin:0 auto">
+
+            <h1 style="font-size:2rem;font-weight:800;color:var(--color-text-primary);margin-bottom:0.25rem">How To Play</h1>
+            <p style="color:var(--color-text-muted);margin-bottom:3rem">Everything you need to know about MFL scoring and strategy.</p>
+
+            <!-- How MFL Scoring Works -->
+            <div class="scoring-block" style="margin-bottom:2rem">
+                <h2 class="scoring-block-title">How MFL Scoring Works</h2>
+                <p class="scoring-block-intro">MFL scoring is based on key performances throughout the DCI season instead of every single show.</p>
+
+                <p class="scoring-block-label">Each corps earns fantasy points from:</p>
+                <ul class="scoring-list">
+                    <li>1st performance</li>
+                    <li>3rd performance</li>
+                    <li>5th performance</li>
+                    <li>7th performance</li>
+                </ul>
+
+                <p class="scoring-block-label">Along with Major Regional Events:</p>
+                <ul class="scoring-list">
+                    <li>Southwestern Championship</li>
+                    <li>Southeastern / Midwestern Championship</li>
+                    <li>Eastern Classic</li>
+                </ul>
+
+                <p class="scoring-block-label">And Championship Week:</p>
+                <ul class="scoring-list">
+                    <li>DCI Prelims</li>
+                    <li>DCI Semifinals</li>
+                    <li>DCI Finals</li>
+                </ul>
+            </div>
+
+            <!-- Scoring Breakdown -->
+            <div class="scoring-block">
+                <h2 class="scoring-block-title">Scoring Breakdown</h2>
+                <p class="scoring-block-intro">Every corps in MFL earns fantasy points using official DCI caption scores.</p>
+
+                <p class="scoring-block-label">Fantasy scoring pulls from real judging categories, including:</p>
+                <ul class="scoring-list">
+                    <li>General Effect 1</li>
+                    <li>General Effect 2</li>
+                    <li>Visual Proficiency</li>
+                    <li>Visual Analysis</li>
+                    <li>Color Guard</li>
+                    <li>Brass</li>
+                    <li>Music Analysis</li>
+                    <li>Percussion</li>
+                </ul>
+
+                <p style="margin-top:1.5rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">Each caption score is added together to create your corps' fantasy total for that performance.</p>
+                <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">As the season progresses, your lineup continues building points across every counted event.</p>
+                <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">At the end of the season, the fantasy team with the highest combined score wins the league.</p>
+                <p style="margin-top:1.25rem;padding:1rem;background:rgba(47,143,78,0.07);border:1px solid rgba(47,143,78,0.2);border-radius:8px;color:var(--color-text-secondary);font-size:0.9rem;line-height:1.7"><strong style="color:var(--color-text-primary)">Finals Week note:</strong> During Finals Week, some captions use double judging panels. When two judges score the same caption, the average of those scores is used for MFL scoring.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="/images/mfl-logo.png" alt="MFL" class="footer-logo-img">
+                </div>
+                <div class="footer-links">
+                    <a href="/scores">Scores</a>
+                    <a href="/app">My League</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="api.js"></script>
+    <script src="utils/avatar.js"></script>
+    <script src="nav.js"></script>
+</body>
+
+</html>
