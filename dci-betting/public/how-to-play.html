@@ -12,29 +12,29 @@
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        .how-to-play-page h1,
-        .how-to-play-page p,
-        .how-to-play-page .scoring-block-title,
-        .how-to-play-page .scoring-block-intro,
-        .how-to-play-page .scoring-block-label,
-        .how-to-play-page .scoring-list li,
-        .how-to-play-page strong {
-            color: #ffffff;
+        .htp-card {
+            background: rgba(20, 20, 20, 0.82);
+            border-radius: 16px;
+            padding: 2.5rem;
+            backdrop-filter: blur(6px);
         }
-        .how-to-play-page .scoring-block {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-        .how-to-play-page .scoring-list li {
-            border-bottom-color: rgba(255, 255, 255, 0.08);
-        }
-        .how-to-play-page .scoring-list li::before {
-            color: rgba(255, 255, 255, 0.6);
-        }
-        .how-to-play-page .finals-note {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.85);
+        .htp-card h1 { color: #ffffff; font-size: 2rem; font-weight: 800; margin-bottom: 0.25rem; }
+        .htp-card .htp-sub { color: rgba(255,255,255,0.55); margin-bottom: 2.5rem; font-size: 0.95rem; }
+        .htp-card .scoring-block { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+        .htp-card .scoring-block-title { color: #7dd899; }
+        .htp-card .scoring-block-intro { color: rgba(255,255,255,0.85); }
+        .htp-card .scoring-block-label { color: rgba(255,255,255,0.5); }
+        .htp-card .scoring-list li { color: rgba(255,255,255,0.8); border-bottom-color: rgba(255,255,255,0.07); }
+        .htp-card .scoring-list li::before { color: #7dd899; }
+        .htp-card p { color: rgba(255,255,255,0.8); }
+        .htp-card strong { color: #ffffff; }
+        .htp-card .finals-note {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.7;
         }
     </style>
 </head>
@@ -50,12 +50,12 @@
         </div>
     </header>
 
-    <main class="container how-to-play-page" style="padding: 60px 0 80px">
+    <main class="container" style="padding: 60px 0 80px">
 
-        <div style="max-width:800px;margin:0 auto">
+        <div style="max-width:800px;margin:0 auto" class="htp-card">
 
-            <h1 style="font-size:2rem;font-weight:800;color:var(--color-text-primary);margin-bottom:0.25rem">How To Play</h1>
-            <p style="color:var(--color-text-muted);margin-bottom:3rem">Everything you need to know about MFL scoring and strategy.</p>
+            <h1>How To Play</h1>
+            <p class="htp-sub">Everything you need to know about MFL scoring and strategy.</p>
 
             <!-- How MFL Scoring Works -->
             <div class="scoring-block" style="margin-bottom:2rem">
@@ -102,10 +102,10 @@
                     <li>Percussion</li>
                 </ul>
 
-                <p style="margin-top:1.5rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">Each caption score is added together to create your corps' fantasy total for that performance.</p>
-                <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">As the season progresses, your lineup continues building points across every counted event.</p>
-                <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">At the end of the season, the fantasy team with the highest combined score wins the league.</p>
-                <p class="finals-note" style="margin-top:1.25rem;padding:1rem;border-radius:8px;font-size:0.9rem;line-height:1.7"><strong>Finals Week note:</strong> During Finals Week, some captions use double judging panels. When two judges score the same caption, the average of those scores is used for MFL scoring.</p>
+                <p style="margin-top:1.5rem;font-size:0.95rem;line-height:1.7">Each caption score is added together to create your corps' fantasy total for that performance.</p>
+                <p style="margin-top:0.75rem;font-size:0.95rem;line-height:1.7">As the season progresses, your lineup continues building points across every counted event.</p>
+                <p style="margin-top:0.75rem;font-size:0.95rem;line-height:1.7">At the end of the season, the fantasy team with the highest combined score wins the league.</p>
+                <p class="finals-note" style="margin-top:1.25rem"><strong>Finals Week note:</strong> During Finals Week, some captions use double judging panels. When two judges score the same caption, the average of those scores is used for MFL scoring.</p>
             </div>
 
         </div>
