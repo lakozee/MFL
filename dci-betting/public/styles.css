@@ -1702,9 +1702,6 @@ h3 {
 /* ── Scoring Explainer Section ─────────────────────────────────────────────── */
 #scoring-explainer {
   padding: 80px 0;
-  background: var(--color-bg-secondary);
-  border-top: 1px solid rgba(0,0,0,0.06);
-  border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
 .scoring-explainer-grid {
@@ -1721,30 +1718,31 @@ h3 {
 }
 
 .scoring-block {
-  background: var(--color-bg-primary);
-  border: 1px solid rgba(0,0,0,0.07);
+  background: rgba(20, 20, 20, 0.82);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 12px;
   padding: 2rem;
+  backdrop-filter: blur(6px);
 }
 
 .scoring-block-title {
   font-size: 1.2rem;
   font-weight: 700;
-  color: var(--color-accent-primary);
+  color: #7dd899;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
 }
 
 .scoring-block-intro {
-  color: var(--color-text-secondary);
+  color: rgba(255,255,255,0.85);
   font-size: 0.95rem;
   line-height: 1.7;
   margin-bottom: 1.25rem;
 }
 
 .scoring-block-label {
-  color: var(--color-text-muted);
+  color: rgba(255,255,255,0.5);
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1760,12 +1758,12 @@ h3 {
 }
 
 .scoring-list li {
-  color: var(--color-text-secondary);
+  color: rgba(255,255,255,0.8);
   font-size: 0.93rem;
   padding: 5px 0 5px 1.25rem;
   position: relative;
   line-height: 1.5;
-  border-bottom: 1px solid rgba(0,0,0,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
 }
 
 .scoring-list li:last-child {
@@ -1776,7 +1774,7 @@ h3 {
   content: '▸';
   position: absolute;
   left: 0;
-  color: var(--color-accent-primary);
+  color: #7dd899;
   font-size: 0.75rem;
   top: 6px;
 }

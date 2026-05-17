@@ -48,6 +48,7 @@ class NavigationManager {
         `;
       } else {
         const isHowToPlay = window.location.pathname === '/how-to-play';
+        const isContact = window.location.pathname === '/contact';
         appNav.innerHTML = `
           <a href="/app" class="nav-item">Draft</a>
           <a href="/app?view=myTeam" class="nav-item">My Team</a>
@@ -55,6 +56,7 @@ class NavigationManager {
           <a href="/app?view=standings" class="nav-item">Standings</a>
           <a href="/scores" class="nav-item${isScoresPage ? ' active' : ''}">Scores</a>
           <a href="/how-to-play" class="nav-item${isHowToPlay ? ' active' : ''}">How To Play</a>
+          <a href="/contact" class="nav-item${isContact ? ' active' : ''}">Contact Us</a>
         `;
       }
       headerContent.appendChild(appNav);
@@ -101,7 +103,12 @@ class NavigationManager {
         </div>
       `;
     } else {
-      // User not logged in - show login button
+      // User not logged in - show contact link + login button
+      const isContact = window.location.pathname === '/contact';
+      const guestNav = document.createElement('nav');
+      guestNav.className = 'main-nav global-nav';
+      guestNav.innerHTML = `<a href="/contact" class="nav-item${isContact ? ' active' : ''}">Contact Us</a>`;
+      headerContent.appendChild(guestNav);
       authSection.innerHTML = `
         <a href="/auth" class="btn btn-primary">Login</a>
       `;
