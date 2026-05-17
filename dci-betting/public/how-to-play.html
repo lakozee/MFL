@@ -11,6 +11,32 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .how-to-play-page h1,
+        .how-to-play-page p,
+        .how-to-play-page .scoring-block-title,
+        .how-to-play-page .scoring-block-intro,
+        .how-to-play-page .scoring-block-label,
+        .how-to-play-page .scoring-list li,
+        .how-to-play-page strong {
+            color: #ffffff;
+        }
+        .how-to-play-page .scoring-block {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .how-to-play-page .scoring-list li {
+            border-bottom-color: rgba(255, 255, 255, 0.08);
+        }
+        .how-to-play-page .scoring-list li::before {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .how-to-play-page .finals-note {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.85);
+        }
+    </style>
 </head>
 
 <body>
@@ -24,7 +50,7 @@
         </div>
     </header>
 
-    <main class="container" style="padding: 60px 0 80px">
+    <main class="container how-to-play-page" style="padding: 60px 0 80px">
 
         <div style="max-width:800px;margin:0 auto">
 
@@ -79,7 +105,7 @@
                 <p style="margin-top:1.5rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">Each caption score is added together to create your corps' fantasy total for that performance.</p>
                 <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">As the season progresses, your lineup continues building points across every counted event.</p>
                 <p style="margin-top:0.75rem;color:var(--color-text-secondary);font-size:0.95rem;line-height:1.7">At the end of the season, the fantasy team with the highest combined score wins the league.</p>
-                <p style="margin-top:1.25rem;padding:1rem;background:rgba(47,143,78,0.07);border:1px solid rgba(47,143,78,0.2);border-radius:8px;color:var(--color-text-secondary);font-size:0.9rem;line-height:1.7"><strong style="color:var(--color-text-primary)">Finals Week note:</strong> During Finals Week, some captions use double judging panels. When two judges score the same caption, the average of those scores is used for MFL scoring.</p>
+                <p class="finals-note" style="margin-top:1.25rem;padding:1rem;border-radius:8px;font-size:0.9rem;line-height:1.7"><strong>Finals Week note:</strong> During Finals Week, some captions use double judging panels. When two judges score the same caption, the average of those scores is used for MFL scoring.</p>
             </div>
 
         </div>
