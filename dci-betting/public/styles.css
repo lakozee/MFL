@@ -135,6 +135,7 @@ h3 {
     justify-content: space-between;
     align-items: center;
     gap: var(--spacing-xl);
+    padding: 8px 0;
 }
 
 .main-nav {
@@ -621,7 +622,7 @@ h3 {
 }
 
 .logo-img {
-    height: 46px;
+    height: 36px;
     width: auto;
     display: block;
     mix-blend-mode: multiply;
@@ -637,7 +638,7 @@ h3 {
 }
 
 .hero-logo {
-    width: 220px;
+    width: 340px;
     height: auto;
     mix-blend-mode: multiply;
     margin-bottom: var(--spacing-xl);
@@ -801,7 +802,7 @@ h3 {
 }
 
 .page-header p {
-    color: var(--color-text-secondary);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 1.125rem;
 }
 

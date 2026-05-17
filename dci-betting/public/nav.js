@@ -45,6 +45,8 @@ class NavigationManager {
           <button class="nav-item" id="gNavTrade" onclick="globalNavClick(this,'trade')">Trade</button>
           <button class="nav-item" id="gNavStandings" onclick="globalNavClick(this,'standings')">Standings</button>
           <a href="/scores" class="nav-item">Scores</a>
+          <a href="/how-to-play" class="nav-item">How To Play</a>
+          <a href="/contact" class="nav-item">Contact Us</a>
         `;
       } else {
         const isHowToPlay = window.location.pathname === '/how-to-play';
