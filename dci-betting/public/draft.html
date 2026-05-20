@@ -271,7 +271,7 @@
 
         .lobby-status {
             font-size: 0.9rem;
-            color: var(--color-text-muted);
+            color: rgba(255,255,255,0.6);
             margin-bottom: 1rem;
         }
 
@@ -282,17 +282,18 @@
         }
 
         .instructions-panel {
-            background: rgba(0,0,0,0.03);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(20,20,20,0.82);
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 10px;
             overflow: hidden;
+            backdrop-filter: blur(6px);
         }
 
         .instructions-toggle {
             width: 100%;
             background: none;
             border: none;
-            color: var(--color-text-secondary);
+            color: rgba(255,255,255,0.85);
             padding: 0.85rem 1rem;
             text-align: left;
             font-size: 0.85rem;
@@ -304,12 +305,12 @@
             font-family: 'Inter', sans-serif;
         }
 
-        .instructions-toggle:hover { background: rgba(0,0,0,0.03); }
+        .instructions-toggle:hover { background: rgba(255,255,255,0.05); }
 
         .instructions-body {
             padding: 0 1rem 1rem;
             font-size: 0.82rem;
-            color: var(--color-text-muted);
+            color: rgba(255,255,255,0.7);
             line-height: 1.7;
         }
 
@@ -597,9 +598,12 @@
                 <p class="draft-subtitle" id="p1-season">2025 Season</p>
 
                 <!-- Invite row -->
-                <div class="invite-row">
-                    <input type="text" class="invite-input" id="p1-invite-input" readonly placeholder="Generate invite link...">
-                    <button class="btn btn-secondary" id="p1-copy-btn">Copy Invite</button>
+                <div class="card" style="padding:1rem;margin-bottom:1.5rem;">
+                    <div class="card-title">Invite Link</div>
+                    <div class="invite-row" style="margin-bottom:0;">
+                        <input type="text" class="invite-input" id="p1-invite-input" readonly placeholder="Generate invite link...">
+                        <button class="btn btn-secondary" id="p1-copy-btn">Copy Invite</button>
+                    </div>
                 </div>
 
                 <div class="prelobby-grid">
@@ -682,9 +686,12 @@
                             </p>
                         </div>
 
-                        <div class="invite-row" style="margin-top:0;">
-                            <input type="text" class="invite-input" id="p2-invite-input" readonly placeholder="Invite link...">
-                            <button class="btn btn-secondary" id="p2-copy-btn">Copy</button>
+                        <div class="card" style="padding:1rem;">
+                            <div class="card-title">Invite Link</div>
+                            <div class="invite-row" style="margin-bottom:0;">
+                                <input type="text" class="invite-input" id="p2-invite-input" readonly placeholder="Invite link...">
+                                <button class="btn btn-secondary" id="p2-copy-btn">Copy</button>
+                            </div>
                         </div>
                     </div>
                 </div>
