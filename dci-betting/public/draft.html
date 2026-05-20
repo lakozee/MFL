@@ -13,8 +13,6 @@
 
         body {
             margin: 0;
-            background: var(--color-bg-primary);
-            color: var(--color-text-primary);
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
         }
@@ -34,24 +32,23 @@
             font-size: 1.75rem;
             font-weight: 800;
             margin: 0 0 0.25rem;
-            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #ffffff;
         }
 
         .draft-subtitle {
-            color: var(--color-text-muted);
+            color: rgba(255,255,255,0.6);
             margin: 0 0 2rem;
             font-size: 0.95rem;
         }
 
         .card {
-            background: var(--color-bg-secondary);
-            border: 1px solid rgba(0,0,0,0.06);
+            background: rgba(20,20,20,0.82);
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
+            backdrop-filter: blur(6px);
+            color: rgba(255,255,255,0.85);
         }
 
         .card-title {
@@ -59,7 +56,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: var(--color-text-muted);
+            color: #7dd899;
             margin: 0 0 1rem;
         }
 
@@ -92,13 +89,13 @@
         }
 
         .btn-secondary {
-            background: rgba(0,0,0,0.07);
-            color: var(--color-text-primary);
-            border: 1px solid rgba(0,0,0,0.09);
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .btn-secondary:not(:disabled):hover {
-            background: rgba(0,0,0,0.09);
+            background: rgba(255,255,255,0.18);
         }
 
         .btn-success {
@@ -174,7 +171,7 @@
             align-items: center;
             gap: 0.75rem;
             padding: 0.6rem 0;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
         }
 
         .member-item:last-child { border-bottom: none; }
@@ -187,8 +184,8 @@
             flex-shrink: 0;
         }
 
-        .member-name { font-size: 0.9rem; font-weight: 500; }
-        .member-team { font-size: 0.78rem; color: var(--color-text-muted); }
+        .member-name { font-size: 0.9rem; font-weight: 500; color: #ffffff; }
+        .member-team { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
 
         .timer-row {
             display: flex;
@@ -197,12 +194,12 @@
             margin-bottom: 1rem;
         }
 
-        .timer-label { font-size: 0.9rem; color: var(--color-text-secondary); white-space: nowrap; }
+        .timer-label { font-size: 0.9rem; color: rgba(255,255,255,0.7); white-space: nowrap; }
 
         .waiting-msg {
             text-align: center;
             padding: 2rem;
-            color: var(--color-text-muted);
+            color: rgba(255,255,255,0.6);
             font-size: 0.95rem;
         }
 
@@ -215,10 +212,10 @@
 
         .invite-input {
             flex: 1;
-            background: rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.08);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
             border-radius: 8px;
-            color: var(--color-text-muted);
+            color: rgba(255,255,255,0.7);
             padding: 0.55rem 0.9rem;
             font-size: 0.85rem;
             font-family: 'Inter', sans-serif;
@@ -914,7 +911,7 @@
 
         S.league = leagueData.league;
         S.members = membersData.members;
-        S.isCreator = (S.league.creator_id === S.currentUser.id);
+        S.isCreator = (Number(S.league.creator_id) === Number(S.currentUser.id));
 
         // Determine starting phase
         if (S.league.draft_completed) {
@@ -953,6 +950,25 @@
             document.getElementById('p1-waiting-panel').style.display = 'none';
 
             document.getElementById('p1-open-lobby-btn').addEventListener('click', openLobby);
+
+            // Poll every 5s to refresh member list as players join
+            S.pollInterval = setInterval(async () => {
+                try {
+                    const d = await api.request(`/leagues/${S.leagueId}/members`);
+                    S.members = d.members;
+                    const list = document.getElementById('p1-member-list');
+                    list.innerHTML = S.members.map(m => `
+                        <li class="member-item">
+                            <img class="member-avatar" src="${avatarUrl(m.username, m.profile_picture_url)}" alt="${m.username}">
+                            <div>
+                                <div class="member-name">${m.username}</div>
+                                <div class="member-team">${m.team_name}</div>
+                            </div>
+                        </li>
+                    `).join('');
+                    document.getElementById('p1-season').textContent = `2025 Season · ${S.members.length} of ${S.league.max_players} players`;
+                } catch (_) {}
+            }, 5000);
         } else {
             document.getElementById('p1-creator-panel').style.display = 'none';
             document.getElementById('p1-waiting-panel').style.display = '';
@@ -1050,10 +1066,17 @@
         const ready = players.filter(p => p.isReady).length;
         document.getElementById('p2-status').textContent = `${ready} of ${players.length} players ready`;
 
-        const canStart = players.length >= (S.league.min_players || 4)
+        const canStart = S.isCreator
+            && players.length >= (S.league.min_players || 4)
             && players.every(p => p.isConnected && p.isReady);
         const startBtn = document.getElementById('p2-start-btn');
-        if (startBtn) startBtn.disabled = !canStart;
+        if (startBtn) {
+            if (!S.isCreator) {
+                startBtn.style.display = 'none';
+            } else {
+                startBtn.disabled = !canStart;
+            }
+        }
 
         const myState = players.find(p => p.userId === S.currentUser.id);
         const readyBtn = document.getElementById('p2-ready-btn');

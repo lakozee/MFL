@@ -10,6 +10,17 @@ class NavigationManager {
   async init() {
     // Check if user is logged in
     this.currentUser = await api.verifySession();
+
+    // If logged in, fetch their leagues to build the correct draft link
+    if (this.currentUser) {
+      try {
+        const data = await fetch('/api/leagues/my', { credentials: 'include' }).then(r => r.json());
+        this.userLeagueId = (data.leagues && data.leagues.length > 0) ? data.leagues[0].id : null;
+      } catch (_) {
+        this.userLeagueId = null;
+      }
+    }
+
     this.renderNavigation();
 
     // Set up event listeners
@@ -38,6 +49,9 @@ class NavigationManager {
       const appNav = document.createElement('nav');
       appNav.className = 'main-nav global-nav';
 
+      const leagueHref = this.userLeagueId ? `/league/${this.userLeagueId}` : '/app';
+      const isDraftPage = window.location.pathname.startsWith('/league/');
+
       if (isAppPage) {
         appNav.innerHTML = `
           <button class="nav-item active" id="gNavDraft" onclick="globalNavClick(this,'draft')">Draft</button>
@@ -52,7 +66,7 @@ class NavigationManager {
         const isHowToPlay = window.location.pathname === '/how-to-play';
         const isContact = window.location.pathname === '/contact';
         appNav.innerHTML = `
-          <a href="/app" class="nav-item">Draft</a>
+          <a href="${leagueHref}" class="nav-item${isDraftPage ? ' active' : ''}">My League</a>
           <a href="/app?view=myTeam" class="nav-item">My Team</a>
           <a href="/app?view=trade" class="nav-item">Trade</a>
           <a href="/app?view=standings" class="nav-item">Standings</a>
