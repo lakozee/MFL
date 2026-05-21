@@ -20,15 +20,29 @@ class APIClient {
 
         try {
             const response = await fetch(url, config);
-            const data = await response.json();
+
+            // Handle 401 Unauthorized - redirect to login
+            if (response.status === 401) {
+                window.location.href = '/auth';
+                throw new Error('Authentication required');
+            }
+
+            // Handle rate limiting gracefully
+            if (response.status === 429) {
+                throw new Error('Too many requests. Please wait a moment and try again.');
+            }
+
+            // Parse JSON safely — non-JSON responses (e.g. server errors) shouldn't crash the app
+            let data;
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                const text = await response.text();
+                throw new Error(text || 'Request failed');
+            }
 
             if (!response.ok) {
-                // Handle 401 Unauthorized - redirect to login
-                if (response.status === 401) {
-                    window.location.href = '/auth';
-                    throw new Error('Authentication required');
-                }
-
                 throw new Error(data.error || 'Request failed');
             }
 
