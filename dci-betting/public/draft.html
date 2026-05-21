@@ -416,10 +416,8 @@
             cursor: default;
         }
 
-        .caption-card.disabled {
-            cursor: default;
-            pointer-events: none;
-            opacity: 0.6;
+        .caption-card.not-my-turn {
+            opacity: 0.55;
         }
 
         .caption-card.my-pick {
@@ -1178,7 +1176,8 @@
         grid.innerHTML = visible.map(c => {
             const drafted = S.draftedCaptions[c.id];
             const isMyPick = drafted && drafted.userId === S.currentUser.id;
-            const cls = drafted ? 'drafted' : (!isMyTurn ? 'disabled' : '');
+            // Cards are visually dimmed when not your turn, but never pointer-events blocked
+            const cls = drafted ? 'drafted' : (!isMyTurn ? 'not-my-turn' : '');
             const extraCls = isMyPick ? ' my-pick' : '';
             return `
                 <div class="caption-card ${cls}${extraCls}" data-id="${c.id}">
@@ -1191,11 +1190,17 @@
             `;
         }).join('');
 
-        if (isMyTurn) {
-            grid.querySelectorAll('.caption-card:not(.drafted)').forEach(card => {
-                card.addEventListener('click', () => openConfirmModal(card.dataset.id));
+        // Always attach click handlers to all non-drafted cards
+        // Server validates turn ownership; client just shows confirm modal or "not your turn"
+        grid.querySelectorAll('.caption-card:not(.drafted)').forEach(card => {
+            card.addEventListener('click', () => {
+                if (!isMyTurn) {
+                    showToast("It's not your turn yet", 'error');
+                    return;
+                }
+                openConfirmModal(card.dataset.id);
             });
-        }
+        });
     }
 
     function openConfirmModal(captionId) {
