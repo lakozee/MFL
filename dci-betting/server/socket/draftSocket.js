@@ -70,13 +70,13 @@ function setupDraftSocket(server, db) {
                     console.log(`[Socket] ${socket.username} reconnected in time — draft resumed`);
                 }
 
-                const lobbyState = await getLobbyState(db, leagueId);
-                socket.emit('lobby-state', lobbyState);
-
                 io.to(`league-${leagueId}`).emit('player-joined', {
                     userId: socket.userId,
                     username: socket.username
                 });
+
+                const lobbyState = await getLobbyState(db, leagueId);
+                io.to(`league-${leagueId}`).emit('lobby-state', lobbyState);
 
                 console.log(`[Socket] ${socket.username} joined lobby for league ${leagueId}`);
             } catch (error) {
@@ -268,6 +268,9 @@ function setupDraftSocket(server, db) {
                     userId: socket.userId,
                     username: socket.username
                 });
+
+                const lobbyState = await getLobbyState(db, leagueId);
+                io.to(`league-${leagueId}`).emit('lobby-state', lobbyState);
 
                 console.log(`[Socket] ${socket.username} disconnected from league ${leagueId}`);
 
