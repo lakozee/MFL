@@ -245,6 +245,16 @@ function setupDraftSocket(server, db) {
 
                 const section = deriveSectionFromCaptionId(captionId);
 
+                // Check user doesn't already have a pick for this section
+                const sectionCheck = await db.query(
+                    'SELECT 1 FROM draft_picks WHERE league_id = $1 AND user_id = $2 AND section_type = $3',
+                    [leagueId, socket.userId, section]
+                );
+                if (sectionCheck.rows.length > 0) {
+                    socket.emit('error', { message: `You already have a pick for ${section}` });
+                    return;
+                }
+
                 await db.query(`
                     INSERT INTO draft_picks (league_id, user_id, caption_id, section_type, pick_number)
                     VALUES ($1, $2, $3, $4, $5)

@@ -421,6 +421,25 @@
             cursor: default;
         }
 
+        .caption-card.section-taken {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .caption-card.section-taken .section-taken-label {
+            display: block;
+        }
+
+        .section-taken-label {
+            display: none;
+            font-size: 0.7rem;
+            color: #f87171;
+            font-weight: 600;
+            margin-top: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         .caption-card.my-pick {
             border-color: #10b981;
             background: rgba(16,185,129,0.1);
@@ -821,36 +840,36 @@
     <script>
     // ── Caption data (matches draftSocket.js hardcoded list) ──────────────────
     const ALL_CAPTIONS = [
-        { id: 'bd-brass',        corps: 'Blue Devils',          section: 'Brass',               score: 19.8, color: '#1e40af', corpsKey: 'bd' },
-        { id: 'bd-percussion',   corps: 'Blue Devils',          section: 'Percussion',           score: 19.7, color: '#1e40af', corpsKey: 'bd' },
-        { id: 'bd-guard',        corps: 'Blue Devils',          section: 'Color Guard',          score: 19.6, color: '#1e40af', corpsKey: 'bd' },
-        { id: 'bd-ge',           corps: 'Blue Devils',          section: 'General Effect',       score: 19.9, color: '#1e40af', corpsKey: 'bd' },
-        { id: 'bd-visual',       corps: 'Blue Devils',          section: 'Visual Performance',   score: 19.7, color: '#1e40af', corpsKey: 'bd' },
-        { id: 'scv-brass',       corps: 'Santa Clara Vanguard', section: 'Brass',               score: 19.6, color: '#dc2626', corpsKey: 'scv' },
-        { id: 'scv-percussion',  corps: 'Santa Clara Vanguard', section: 'Percussion',           score: 19.8, color: '#dc2626', corpsKey: 'scv' },
-        { id: 'scv-guard',       corps: 'Santa Clara Vanguard', section: 'Color Guard',          score: 19.5, color: '#dc2626', corpsKey: 'scv' },
-        { id: 'scv-ge',          corps: 'Santa Clara Vanguard', section: 'General Effect',       score: 19.7, color: '#dc2626', corpsKey: 'scv' },
-        { id: 'scv-visual',      corps: 'Santa Clara Vanguard', section: 'Visual Performance',   score: 19.6, color: '#dc2626', corpsKey: 'scv' },
-        { id: 'bloo-brass',      corps: 'Bluecoats',            section: 'Brass',               score: 19.5, color: '#0891b2', corpsKey: 'bloo' },
-        { id: 'bloo-percussion', corps: 'Bluecoats',            section: 'Percussion',           score: 19.6, color: '#0891b2', corpsKey: 'bloo' },
-        { id: 'bloo-guard',      corps: 'Bluecoats',            section: 'Color Guard',          score: 19.8, color: '#0891b2', corpsKey: 'bloo' },
-        { id: 'bloo-ge',         corps: 'Bluecoats',            section: 'General Effect',       score: 19.6, color: '#0891b2', corpsKey: 'bloo' },
-        { id: 'bloo-visual',     corps: 'Bluecoats',            section: 'Visual Performance',   score: 19.5, color: '#0891b2', corpsKey: 'bloo' },
-        { id: 'crown-brass',     corps: 'Carolina Crown',       section: 'Brass',               score: 19.7, color: '#7c3aed', corpsKey: 'crown' },
-        { id: 'crown-percussion',corps: 'Carolina Crown',       section: 'Percussion',           score: 19.5, color: '#7c3aed', corpsKey: 'crown' },
-        { id: 'crown-guard',     corps: 'Carolina Crown',       section: 'Color Guard',          score: 19.4, color: '#7c3aed', corpsKey: 'crown' },
-        { id: 'crown-ge',        corps: 'Carolina Crown',       section: 'General Effect',       score: 19.6, color: '#7c3aed', corpsKey: 'crown' },
-        { id: 'crown-visual',    corps: 'Carolina Crown',       section: 'Visual Performance',   score: 19.7, color: '#7c3aed', corpsKey: 'crown' },
-        { id: 'cavs-brass',      corps: 'The Cavaliers',        section: 'Brass',               score: 19.4, color: '#ea580c', corpsKey: 'cavs' },
-        { id: 'cavs-percussion', corps: 'The Cavaliers',        section: 'Percussion',           score: 19.4, color: '#ea580c', corpsKey: 'cavs' },
-        { id: 'cavs-guard',      corps: 'The Cavaliers',        section: 'Color Guard',          score: 19.3, color: '#ea580c', corpsKey: 'cavs' },
-        { id: 'cavs-ge',         corps: 'The Cavaliers',        section: 'General Effect',       score: 19.5, color: '#ea580c', corpsKey: 'cavs' },
-        { id: 'cavs-visual',     corps: 'The Cavaliers',        section: 'Visual Performance',   score: 19.6, color: '#ea580c', corpsKey: 'cavs' },
-        { id: 'bac-brass',       corps: 'Boston Crusaders',     section: 'Brass',               score: 19.3, color: '#be123c', corpsKey: 'bac' },
-        { id: 'bac-percussion',  corps: 'Boston Crusaders',     section: 'Percussion',           score: 19.7, color: '#be123c', corpsKey: 'bac' },
-        { id: 'bac-guard',       corps: 'Boston Crusaders',     section: 'Color Guard',          score: 19.2, color: '#be123c', corpsKey: 'bac' },
-        { id: 'bac-ge',          corps: 'Boston Crusaders',     section: 'General Effect',       score: 19.4, color: '#be123c', corpsKey: 'bac' },
-        { id: 'bac-visual',      corps: 'Boston Crusaders',     section: 'Visual Performance',   score: 19.3, color: '#be123c', corpsKey: 'bac' },
+        { id: 'bd-brass',        corps: 'Blue Devils',          section: 'Brass',               score: 19.8, color: '#60a5fa', corpsKey: 'bd' },
+        { id: 'bd-percussion',   corps: 'Blue Devils',          section: 'Percussion',           score: 19.7, color: '#60a5fa', corpsKey: 'bd' },
+        { id: 'bd-guard',        corps: 'Blue Devils',          section: 'Color Guard',          score: 19.6, color: '#60a5fa', corpsKey: 'bd' },
+        { id: 'bd-ge',           corps: 'Blue Devils',          section: 'General Effect',       score: 19.9, color: '#60a5fa', corpsKey: 'bd' },
+        { id: 'bd-visual',       corps: 'Blue Devils',          section: 'Visual Performance',   score: 19.7, color: '#60a5fa', corpsKey: 'bd' },
+        { id: 'scv-brass',       corps: 'Santa Clara Vanguard', section: 'Brass',               score: 19.6, color: '#f87171', corpsKey: 'scv' },
+        { id: 'scv-percussion',  corps: 'Santa Clara Vanguard', section: 'Percussion',           score: 19.8, color: '#f87171', corpsKey: 'scv' },
+        { id: 'scv-guard',       corps: 'Santa Clara Vanguard', section: 'Color Guard',          score: 19.5, color: '#f87171', corpsKey: 'scv' },
+        { id: 'scv-ge',          corps: 'Santa Clara Vanguard', section: 'General Effect',       score: 19.7, color: '#f87171', corpsKey: 'scv' },
+        { id: 'scv-visual',      corps: 'Santa Clara Vanguard', section: 'Visual Performance',   score: 19.6, color: '#f87171', corpsKey: 'scv' },
+        { id: 'bloo-brass',      corps: 'Bluecoats',            section: 'Brass',               score: 19.5, color: '#22d3ee', corpsKey: 'bloo' },
+        { id: 'bloo-percussion', corps: 'Bluecoats',            section: 'Percussion',           score: 19.6, color: '#22d3ee', corpsKey: 'bloo' },
+        { id: 'bloo-guard',      corps: 'Bluecoats',            section: 'Color Guard',          score: 19.8, color: '#22d3ee', corpsKey: 'bloo' },
+        { id: 'bloo-ge',         corps: 'Bluecoats',            section: 'General Effect',       score: 19.6, color: '#22d3ee', corpsKey: 'bloo' },
+        { id: 'bloo-visual',     corps: 'Bluecoats',            section: 'Visual Performance',   score: 19.5, color: '#22d3ee', corpsKey: 'bloo' },
+        { id: 'crown-brass',     corps: 'Carolina Crown',       section: 'Brass',               score: 19.7, color: '#c084fc', corpsKey: 'crown' },
+        { id: 'crown-percussion',corps: 'Carolina Crown',       section: 'Percussion',           score: 19.5, color: '#c084fc', corpsKey: 'crown' },
+        { id: 'crown-guard',     corps: 'Carolina Crown',       section: 'Color Guard',          score: 19.4, color: '#c084fc', corpsKey: 'crown' },
+        { id: 'crown-ge',        corps: 'Carolina Crown',       section: 'General Effect',       score: 19.6, color: '#c084fc', corpsKey: 'crown' },
+        { id: 'crown-visual',    corps: 'Carolina Crown',       section: 'Visual Performance',   score: 19.7, color: '#c084fc', corpsKey: 'crown' },
+        { id: 'cavs-brass',      corps: 'The Cavaliers',        section: 'Brass',               score: 19.4, color: '#fb923c', corpsKey: 'cavs' },
+        { id: 'cavs-percussion', corps: 'The Cavaliers',        section: 'Percussion',           score: 19.4, color: '#fb923c', corpsKey: 'cavs' },
+        { id: 'cavs-guard',      corps: 'The Cavaliers',        section: 'Color Guard',          score: 19.3, color: '#fb923c', corpsKey: 'cavs' },
+        { id: 'cavs-ge',         corps: 'The Cavaliers',        section: 'General Effect',       score: 19.5, color: '#fb923c', corpsKey: 'cavs' },
+        { id: 'cavs-visual',     corps: 'The Cavaliers',        section: 'Visual Performance',   score: 19.6, color: '#fb923c', corpsKey: 'cavs' },
+        { id: 'bac-brass',       corps: 'Boston Crusaders',     section: 'Brass',               score: 19.3, color: '#fb7185', corpsKey: 'bac' },
+        { id: 'bac-percussion',  corps: 'Boston Crusaders',     section: 'Percussion',           score: 19.7, color: '#fb7185', corpsKey: 'bac' },
+        { id: 'bac-guard',       corps: 'Boston Crusaders',     section: 'Color Guard',          score: 19.2, color: '#fb7185', corpsKey: 'bac' },
+        { id: 'bac-ge',          corps: 'Boston Crusaders',     section: 'General Effect',       score: 19.4, color: '#fb7185', corpsKey: 'bac' },
+        { id: 'bac-visual',      corps: 'Boston Crusaders',     section: 'Visual Performance',   score: 19.3, color: '#fb7185', corpsKey: 'bac' },
     ];
 
     const SECTIONS = ['Brass', 'Percussion', 'Color Guard', 'General Effect', 'Visual Performance'];
@@ -1210,11 +1229,15 @@
             return true;
         });
 
+        const myPickedSections = new Set(
+            S.myPicks.map(p => { const c = getCaption(p.captionId); return c ? c.section : null; }).filter(Boolean)
+        );
+
         grid.innerHTML = visible.map(c => {
             const drafted = S.draftedCaptions[c.id];
             const isMyPick = drafted && drafted.userId === S.currentUser.id;
-            // Cards are visually dimmed when not your turn, but never pointer-events blocked
-            const cls = drafted ? 'drafted' : (!isMyTurn ? 'not-my-turn' : '');
+            const sectionTaken = !drafted && myPickedSections.has(c.section);
+            let cls = drafted ? 'drafted' : (sectionTaken ? 'section-taken' : (!isMyTurn ? 'not-my-turn' : ''));
             const extraCls = isMyPick ? ' my-pick' : '';
             return `
                 <div class="caption-card ${cls}${extraCls}" data-id="${c.id}">
@@ -1223,12 +1246,13 @@
                     <div class="caption-section">${c.section}</div>
                     <div class="caption-score">${c.score.toFixed(1)}</div>
                     ${drafted ? `<div class="caption-owner">${isMyPick ? 'Your pick' : drafted.username}</div>` : ''}
+                    <span class="section-taken-label">Section filled</span>
                 </div>
             `;
         }).join('');
 
-        // Always attach click handlers — server validates whose turn it is
-        grid.querySelectorAll('.caption-card:not(.drafted)').forEach(card => {
+        // Attach click handlers — skip drafted and section-taken cards
+        grid.querySelectorAll('.caption-card:not(.drafted):not(.section-taken)').forEach(card => {
             card.addEventListener('click', () => openConfirmModal(card.dataset.id));
         });
     }
@@ -1300,8 +1324,8 @@
                         return c && c.section === section;
                     });
                     const c = captionId ? getCaption(captionId) : null;
-                    return `<div style="font-size:0.78rem;color:${c ? 'var(--color-text-secondary)' : 'rgba(0,0,0,0.18)'};padding:0.18rem 0">
-                        <span style="color:var(--color-text-muted)">${section}:</span> ${c ? c.corps : '—'}
+                    return `<div style="font-size:0.78rem;color:${c ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.22)'};padding:0.18rem 0">
+                        <span style="color:rgba(255,255,255,0.45)">${section}:</span> ${c ? `<span style="color:${c.color}">${c.corps}</span>` : '—'}
                     </div>`;
                 }).join('')}
             </div>
