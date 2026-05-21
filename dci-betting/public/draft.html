@@ -1101,17 +1101,25 @@
     async function loadDraftPhase() {
         showPhase('draft');
 
-        // Load existing picks from REST
-        try {
-            const d = await api.request(`/draft/${S.leagueId}/picks`);
-            for (const pick of d.picks) {
-                S.draftedCaptions[pick.caption_id] = { userId: pick.user_id, username: pick.username };
-                S.allPicks.push({ userId: pick.user_id, username: pick.username, captionId: pick.caption_id, section: pick.section_type, pickNumber: pick.pick_number });
-                if (!S.allTeams[pick.user_id]) S.allTeams[pick.user_id] = { username: pick.username, teamName: '', picks: [] };
-                S.allTeams[pick.user_id].picks.push(pick.caption_id);
-                if (pick.user_id === S.currentUser.id) S.myPicks.push({ captionId: pick.caption_id, section: pick.section_type });
-            }
-        } catch (_) {}
+        // Fetch picks AND current turn state in parallel before first render
+        await Promise.all([
+            api.request(`/draft/${S.leagueId}/picks`).then(d => {
+                for (const pick of d.picks) {
+                    S.draftedCaptions[pick.caption_id] = { userId: pick.user_id, username: pick.username };
+                    S.allPicks.push({ userId: pick.user_id, username: pick.username, captionId: pick.caption_id, section: pick.section_type, pickNumber: pick.pick_number });
+                    if (!S.allTeams[pick.user_id]) S.allTeams[pick.user_id] = { username: pick.username, teamName: '', picks: [] };
+                    S.allTeams[pick.user_id].picks.push(pick.caption_id);
+                    if (pick.user_id === S.currentUser.id) S.myPicks.push({ captionId: pick.caption_id, section: pick.section_type });
+                }
+            }).catch(() => {}),
+            api.request(`/draft/${S.leagueId}/state`).then(st => {
+                if (st.currentTurnUserId != null) {
+                    S.currentTurnUserId = Number(st.currentTurnUserId);
+                    document.getElementById('turn-round').textContent =
+                        `Round ${st.round}, Pick ${st.pickInRound} of ${st.playerCount}`;
+                }
+            }).catch(() => {})
+        ]);
 
         // Team names from members
         for (const m of S.members) {
@@ -1155,7 +1163,8 @@
 
     function renderCaptionGrid() {
         const grid = document.getElementById('caption-grid');
-        const isMyTurn = S.currentTurnUserId === S.currentUser.id;
+        const isMyTurn = S.currentTurnUserId != null &&
+            Number(S.currentTurnUserId) === Number(S.currentUser.id);
 
         const visible = ALL_CAPTIONS.filter(c => {
             if (S.filterCorps !== 'all' && c.corpsKey !== S.filterCorps) return false;
@@ -1265,8 +1274,8 @@
     }
 
     function updateTurnBanner(data) {
-        S.currentTurnUserId = data.currentUserId;
-        const isMe = data.currentUserId === S.currentUser.id;
+        S.currentTurnUserId = Number(data.currentUserId);
+        const isMe = Number(data.currentUserId) === Number(S.currentUser.id);
         const banner = document.getElementById('turn-banner');
         banner.className = `turn-banner${isMe ? ' my-turn' : ''}`;
 
