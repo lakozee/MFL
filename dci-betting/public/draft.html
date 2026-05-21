@@ -451,8 +451,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 200;
+            z-index: 500;
             padding: 1rem;
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .modal-overlay.hidden { display: none; }
@@ -680,6 +682,18 @@
 
                     <!-- Right panel: actions -->
                     <div>
+                        <div class="card" style="margin-bottom:1rem;">
+                            <div class="card-title">Your Team Name</div>
+                            <div style="display:flex;gap:0.5rem;align-items:center;">
+                                <input type="text" class="invite-input" id="p2-team-name-input"
+                                    placeholder="Enter your team name..."
+                                    maxlength="50"
+                                    style="flex:1;">
+                                <button class="btn btn-secondary" id="p2-team-name-btn">Save</button>
+                            </div>
+                            <p id="p2-team-name-hint" style="font-size:0.78rem;color:var(--color-text-muted);margin:0.5rem 0 0;"></p>
+                        </div>
+
                         <div class="card lobby-actions">
                             <div class="card-title">Actions</div>
                             <button class="btn btn-success btn-large" id="p2-ready-btn">Ready Up</button>
@@ -1045,6 +1059,28 @@
             const chevron = document.getElementById('instructions-chevron');
             const hidden = body.classList.toggle('hidden');
             chevron.textContent = hidden ? '▶' : '▲';
+        });
+
+        // Team name input — pre-populate with current name and wire Save button
+        const teamNameInput = document.getElementById('p2-team-name-input');
+        const teamNameHint  = document.getElementById('p2-team-name-hint');
+        api.request(`/teams/my/${S.leagueId}`).then(d => {
+            teamNameInput.value = d.team.team_name || '';
+        }).catch(() => {});
+
+        document.getElementById('p2-team-name-btn').addEventListener('click', () => {
+            const name = teamNameInput.value.trim();
+            if (name.length < 2 || name.length > 50) {
+                teamNameHint.textContent = 'Name must be 2–50 characters.';
+                teamNameHint.style.color = '#f87171';
+                return;
+            }
+            if (S.socket) {
+                S.socket.emit('update-team-name', { leagueId: S.leagueId, teamName: name });
+                teamNameHint.textContent = 'Saved!';
+                teamNameHint.style.color = '#7dd899';
+                setTimeout(() => { teamNameHint.textContent = ''; }, 2000);
+            }
         });
 
         // Ready up button

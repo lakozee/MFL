@@ -111,6 +111,25 @@ function setupDraftSocket(server, db) {
             }
         });
 
+        // ── update-team-name ──────────────────────────────────────────────────
+        socket.on('update-team-name', async ({ leagueId, teamName }) => {
+            try {
+                if (!teamName || teamName.trim().length < 2 || teamName.trim().length > 50) {
+                    socket.emit('error', { message: 'Team name must be 2–50 characters' });
+                    return;
+                }
+                await db.query(
+                    'UPDATE league_members SET team_name = $1 WHERE league_id = $2 AND user_id = $3',
+                    [teamName.trim(), leagueId, socket.userId]
+                );
+                const lobbyState = await getLobbyState(db, leagueId);
+                io.to(`league-${leagueId}`).emit('lobby-state', lobbyState);
+            } catch (error) {
+                console.error('[Socket] update-team-name error:', error);
+                socket.emit('error', { message: 'Failed to update team name' });
+            }
+        });
+
         // ── ready-up ──────────────────────────────────────────────────────────
         socket.on('ready-up', async (leagueId) => {
             try {
