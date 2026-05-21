@@ -300,6 +300,34 @@ function setupDraftSocket(server, db) {
 
                 console.log(`[Socket] ${socket.username} disconnected from league ${leagueId}`);
 
+                // If ALL players are now disconnected, reset the draft so they start fresh
+                const allSessions = await db.query(
+                    'SELECT is_connected FROM draft_sessions WHERE league_id = $1',
+                    [leagueId]
+                );
+                const allGone = allSessions.rows.length > 0 && allSessions.rows.every(s => !s.is_connected);
+                if (allGone) {
+                    // Stop all active timers for this league
+                    stopTurnTimer(leagueId, draftTimers);
+                    for (const [key, timer] of disconnectTimers.entries()) {
+                        if (key.startsWith(`${leagueId}-`)) {
+                            clearInterval(timer);
+                            disconnectTimers.delete(key);
+                        }
+                    }
+                    // Wipe picks and reset league state
+                    await db.query('DELETE FROM draft_picks WHERE league_id = $1', [leagueId]);
+                    await db.query('DELETE FROM draft_sessions WHERE league_id = $1', [leagueId]);
+                    await db.query(`
+                        UPDATE leagues
+                        SET draft_started = false, draft_lobby_open = false, draft_completed = false,
+                            current_draft_turn = 0, turn_timer_seconds = NULL
+                        WHERE id = $1
+                    `, [leagueId]);
+                    console.log(`[Socket] All players left league ${leagueId} — draft reset`);
+                    return;
+                }
+
                 // Check if it's this player's turn — if so, start 2-min grace period
                 const league = await db.query(
                     'SELECT current_draft_turn, draft_started, draft_completed FROM leagues WHERE id = $1',

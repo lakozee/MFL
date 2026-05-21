@@ -396,8 +396,8 @@
         }
 
         .caption-card {
-            background: rgba(30,30,30,0.85);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: #1e1e1e;
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 10px;
             padding: 0.85rem;
             cursor: pointer;
@@ -417,7 +417,8 @@
         }
 
         .caption-card.not-my-turn {
-            opacity: 0.55;
+            opacity: 0.5;
+            cursor: default;
         }
 
         .caption-card.my-pick {
@@ -1190,16 +1191,9 @@
             `;
         }).join('');
 
-        // Always attach click handlers to all non-drafted cards
-        // Server validates turn ownership; client just shows confirm modal or "not your turn"
+        // Always attach click handlers — server validates whose turn it is
         grid.querySelectorAll('.caption-card:not(.drafted)').forEach(card => {
-            card.addEventListener('click', () => {
-                if (!isMyTurn) {
-                    showToast("It's not your turn yet", 'error');
-                    return;
-                }
-                openConfirmModal(card.dataset.id);
-            });
+            card.addEventListener('click', () => openConfirmModal(card.dataset.id));
         });
     }
 
