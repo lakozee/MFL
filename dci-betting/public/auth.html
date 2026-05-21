@@ -192,6 +192,13 @@
                         placeholder="Confirm password" required>
                 </div>
 
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display:flex;align-items:flex-start;gap:0.6rem;cursor:pointer;color:var(--color-text-secondary);font-size:0.875rem;line-height:1.5;">
+                        <input type="checkbox" id="tosAgree" style="margin-top:3px;flex-shrink:0;accent-color:var(--color-accent-primary);" required>
+                        I agree to the <a href="/terms" target="_blank" style="color:var(--color-accent-primary);font-weight:600;text-decoration:none;">Terms of Service</a>
+                    </label>
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-large">
                     Create Account
                 </button>
@@ -298,6 +305,10 @@
             errorMessage.classList.remove('show');
         }
     </script>
+
+    <footer style="text-align:center;padding:1.5rem;margin-top:2rem;">
+        <a href="/terms" style="color:rgba(255,255,255,0.45);font-size:0.8rem;text-decoration:none;">Terms of Service</a>
+    </footer>
 </body>
 
 </html>

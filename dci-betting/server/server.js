@@ -129,6 +129,10 @@ app.get('/contact', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/contact.html'));
 });
 
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/terms.html'));
+});
+
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
