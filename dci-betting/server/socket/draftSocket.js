@@ -78,6 +78,32 @@ function setupDraftSocket(server, db) {
                 const lobbyState = await getLobbyState(db, leagueId);
                 io.to(`league-${leagueId}`).emit('lobby-state', lobbyState);
 
+                // If a draft is already in progress, send the current turn to the joining socket
+                // so their caption grid enables correctly and the turn timer shows
+                const leagueRow = await db.query(
+                    'SELECT draft_started, draft_completed, current_draft_turn FROM leagues WHERE id = $1',
+                    [leagueId]
+                );
+                const lr = leagueRow.rows[0];
+                if (lr && lr.draft_started && !lr.draft_completed) {
+                    const turnIndex = lr.current_draft_turn;
+                    const draftOrder = await getDraftOrder(db, leagueId);
+                    if (draftOrder.length > 0) {
+                        const playerCount = draftOrder.length;
+                        const currentUserId = draftOrder[turnIndex % playerCount];
+                        const nextUserId = draftOrder[(turnIndex + 1) % playerCount];
+                        const round = Math.floor(turnIndex / playerCount);
+                        socket.emit('turn-changed', {
+                            currentUserId,
+                            nextUserId,
+                            turnIndex,
+                            round: round + 1,
+                            pickInRound: (turnIndex % playerCount) + 1,
+                            totalPlayers: playerCount
+                        });
+                    }
+                }
+
                 console.log(`[Socket] ${socket.username} joined lobby for league ${leagueId}`);
             } catch (error) {
                 console.error('[Socket] join-lobby error:', error);

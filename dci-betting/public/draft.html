@@ -242,6 +242,7 @@
             border-bottom: 1px solid rgba(0,0,0,0.05);
         }
 
+        .player-row { border-bottom: 1px solid rgba(255,255,255,0.07); }
         .player-row:last-child { border-bottom: none; }
 
         .conn-dot {
@@ -252,11 +253,11 @@
         }
 
         .conn-dot.connected { background: #10b981; box-shadow: 0 0 6px #10b98166; }
-        .conn-dot.disconnected { background: rgba(0,0,0,0.18); }
+        .conn-dot.disconnected { background: rgba(255,255,255,0.2); }
 
         .player-info { flex: 1; min-width: 0; }
-        .player-username { font-size: 0.9rem; font-weight: 600; }
-        .player-team { font-size: 0.78rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .player-username { font-size: 0.9rem; font-weight: 600; color: #ffffff; }
+        .player-team { font-size: 0.78rem; color: rgba(255,255,255,0.5); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .ready-badge {
             font-size: 0.75rem;
@@ -267,7 +268,7 @@
         }
 
         .ready-badge.ready { background: rgba(16,185,129,0.15); color: #10b981; }
-        .ready-badge.waiting { background: rgba(0,0,0,0.06); color: var(--color-text-muted); }
+        .ready-badge.waiting { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.45); }
 
         .lobby-status {
             font-size: 0.9rem;
@@ -349,9 +350,9 @@
         }
 
         .turn-info { flex: 1; min-width: 0; }
-        .turn-label { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 0.2rem; }
-        .turn-player { font-size: 1.1rem; font-weight: 700; }
-        .turn-round { font-size: 0.82rem; color: var(--color-text-muted); margin-top: 0.15rem; }
+        .turn-label { font-size: 0.8rem; color: rgba(255,255,255,0.55); margin-bottom: 0.2rem; }
+        .turn-player { font-size: 1.1rem; font-weight: 700; color: #ffffff; }
+        .turn-round { font-size: 0.82rem; color: rgba(255,255,255,0.55); margin-top: 0.15rem; }
 
         .turn-timer {
             font-size: 2rem;
@@ -395,8 +396,8 @@
         }
 
         .caption-card {
-            background: var(--color-bg-secondary);
-            border: 1px solid rgba(0,0,0,0.07);
+            background: rgba(30,30,30,0.85);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 10px;
             padding: 0.85rem;
             cursor: pointer;
@@ -411,18 +412,19 @@
         }
 
         .caption-card.drafted {
-            opacity: 0.45;
+            opacity: 0.4;
             cursor: default;
         }
 
         .caption-card.disabled {
             cursor: default;
             pointer-events: none;
+            opacity: 0.6;
         }
 
         .caption-card.my-pick {
             border-color: #10b981;
-            background: rgba(16,185,129,0.07);
+            background: rgba(16,185,129,0.1);
         }
 
         .corps-bar {
@@ -431,13 +433,13 @@
             margin-bottom: 0.6rem;
         }
 
-        .caption-corps { font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 0.2rem; }
-        .caption-section { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
-        .caption-score { font-size: 1rem; font-weight: 700; color: var(--color-accent-primary); }
+        .caption-corps { font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-bottom: 0.2rem; }
+        .caption-section { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #ffffff; }
+        .caption-score { font-size: 1rem; font-weight: 700; color: #7dd899; }
 
         .caption-owner {
             font-size: 0.7rem;
-            color: var(--color-text-muted);
+            color: rgba(255,255,255,0.45);
             margin-top: 0.3rem;
             font-style: italic;
         }
@@ -446,7 +448,7 @@
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.65);
+            background: rgba(0,0,0,0.75);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -457,16 +459,17 @@
         .modal-overlay.hidden { display: none; }
 
         .modal {
-            background: var(--color-bg-secondary);
-            border: 1px solid rgba(0,0,0,0.09);
+            background: rgba(20,20,20,0.96);
+            border: 1px solid rgba(255,255,255,0.14);
             border-radius: 14px;
             padding: 1.75rem;
             max-width: 400px;
             width: 100%;
+            backdrop-filter: blur(8px);
         }
 
-        .modal h3 { margin: 0 0 0.5rem; font-size: 1.15rem; }
-        .modal p { margin: 0 0 1.5rem; color: var(--color-text-secondary); font-size: 0.9rem; }
+        .modal h3 { margin: 0 0 0.5rem; font-size: 1.15rem; color: #ffffff; }
+        .modal p { margin: 0 0 1.5rem; color: rgba(255,255,255,0.65); font-size: 0.9rem; }
 
         .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
@@ -478,7 +481,7 @@
             align-items: center;
             gap: 0.6rem;
             padding: 0.55rem 0;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
             font-size: 0.85rem;
         }
 
@@ -486,20 +489,20 @@
 
         .slot-section {
             width: 120px;
-            color: var(--color-text-muted);
+            color: rgba(255,255,255,0.5);
             font-size: 0.78rem;
             flex-shrink: 0;
         }
 
-        .slot-value { font-weight: 600; }
-        .slot-empty { color: rgba(0,0,0,0.22); font-style: italic; }
+        .slot-value { font-weight: 600; color: #ffffff; }
+        .slot-empty { color: rgba(255,255,255,0.25); font-style: italic; }
 
         .pick-log { max-height: 220px; overflow-y: auto; }
 
         .pick-entry {
             font-size: 0.8rem;
             padding: 0.35rem 0;
-            border-bottom: 1px solid rgba(0,0,0,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             gap: 0.5rem;
             align-items: baseline;
@@ -507,14 +510,14 @@
 
         .pick-entry:last-child { border-bottom: none; }
 
-        .pick-num { color: var(--color-text-muted); width: 28px; flex-shrink: 0; }
-        .pick-user { font-weight: 600; }
-        .pick-caption { color: var(--color-text-secondary); }
+        .pick-num { color: rgba(255,255,255,0.4); width: 28px; flex-shrink: 0; }
+        .pick-user { font-weight: 600; color: #ffffff; }
+        .pick-caption { color: rgba(255,255,255,0.6); }
 
         .all-teams-section { margin-top: 1rem; }
 
         .team-block { margin-bottom: 1rem; }
-        .team-block-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--color-text-secondary); }
+        .team-block-name { font-size: 0.82rem; font-weight: 600; margin-bottom: 0.4rem; color: rgba(255,255,255,0.8); }
 
         /* ── Phase 4: Complete ─────────────────────────────────────── */
         .complete-banner {
@@ -541,13 +544,14 @@
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: var(--color-text-muted);
-            border-bottom: 1px solid rgba(0,0,0,0.07);
+            color: rgba(255,255,255,0.5);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
 
         .standings-table td {
             padding: 0.65rem 0.75rem;
-            border-bottom: 1px solid rgba(0,0,0,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.85);
         }
 
         .standings-table tr:last-child td { border-bottom: none; }
