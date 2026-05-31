@@ -21,10 +21,22 @@ class NavigationManager {
       }
     }
 
+    this.injectPortraitOverlay();
     this.renderNavigation();
-
-    // Set up event listeners
     this.setupEventListeners();
+  }
+
+  // Inject portrait-lock overlay once per page load
+  injectPortraitOverlay() {
+    if (document.getElementById('rotateOverlay')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'rotateOverlay';
+    overlay.className = 'rotate-overlay';
+    overlay.innerHTML = `
+      <span class="rotate-overlay-icon">↺</span>
+      <p>Please rotate your device to portrait mode for the best experience.</p>
+    `;
+    document.body.appendChild(overlay);
   }
 
   renderNavigation() {
@@ -34,23 +46,24 @@ class NavigationManager {
     const headerContent = header.querySelector('.header-content');
     if (!headerContent) return;
 
-    // Remove existing auth buttons if present
+    // Remove existing auth section if present (re-render case)
     const existingAuth = header.querySelector('.auth-section');
     if (existingAuth) existingAuth.remove();
 
-    // Create auth section
     const authSection = document.createElement('div');
     authSection.className = 'auth-section';
 
+    const leagueHref = this.userLeagueId ? `/league/${this.userLeagueId}` : '/app';
+    const isAppPage = window.location.pathname === '/app';
+    const isScoresPage = window.location.pathname === '/scores';
+    const isHowToPlay = window.location.pathname === '/how-to-play';
+    const isContact = window.location.pathname === '/contact';
+    const isDraftPage = window.location.pathname.startsWith('/league/');
+
     if (this.currentUser) {
-      // Always inject the same nav for logged-in users
-      const isAppPage = window.location.pathname === '/app';
-      const isScoresPage = window.location.pathname === '/scores';
+      // Desktop nav
       const appNav = document.createElement('nav');
       appNav.className = 'main-nav global-nav';
-
-      const leagueHref = this.userLeagueId ? `/league/${this.userLeagueId}` : '/app';
-      const isDraftPage = window.location.pathname.startsWith('/league/');
 
       if (isAppPage) {
         appNav.innerHTML = `
@@ -63,8 +76,6 @@ class NavigationManager {
           <a href="/contact" class="nav-item">Contact Us</a>
         `;
       } else {
-        const isHowToPlay = window.location.pathname === '/how-to-play';
-        const isContact = window.location.pathname === '/contact';
         appNav.innerHTML = `
           <a href="${leagueHref}" class="nav-item${isDraftPage ? ' active' : ''}">My League</a>
           <a href="/app?view=myTeam" class="nav-item">My Team</a>
@@ -77,7 +88,7 @@ class NavigationManager {
       }
       headerContent.appendChild(appNav);
 
-      // Generate avatar if no custom picture
+      // Avatar
       const avatarUrl = (this.currentUser.profile_picture_url && this.currentUser.profile_picture_url !== '/default-avatar.png')
         ? this.currentUser.profile_picture_url
         : generateDefaultAvatar(this.currentUser.username, 64);
@@ -91,7 +102,6 @@ class NavigationManager {
               <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2"/>
             </svg>
           </button>
-          
           <div class="profile-dropdown-menu" id="profileDropdown">
             ${this.currentUser.is_admin ? `
             <a href="/admin" class="dropdown-item dropdown-item--admin">
@@ -117,20 +127,70 @@ class NavigationManager {
             </button>
           </div>
         </div>
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
       `;
+
+      // Mobile drawer — always use plain links (works on all pages)
+      this._buildMobileDrawer(`
+        <a href="${leagueHref}" class="nav-item${isDraftPage ? ' active' : ''}">My League</a>
+        <a href="/app?view=myTeam" class="nav-item">My Team</a>
+        <a href="/app?view=trade" class="nav-item">Trade</a>
+        <a href="/app?view=standings" class="nav-item">Standings</a>
+        <a href="/scores" class="nav-item${isScoresPage ? ' active' : ''}">Scores</a>
+        <a href="/how-to-play" class="nav-item${isHowToPlay ? ' active' : ''}">How To Play</a>
+        <a href="/contact" class="nav-item${isContact ? ' active' : ''}">Contact Us</a>
+        <div class="mobile-nav-drawer-divider"></div>
+        <a href="/settings" class="nav-item">Account Settings</a>
+        <button class="nav-item" id="mobileLogoutBtn" style="text-align:left;background:none;border:none;font-family:inherit;cursor:pointer;width:100%;color:inherit;">Logout</button>
+      `);
+
     } else {
-      // User not logged in - show contact link + login button
-      const isContact = window.location.pathname === '/contact';
+      // Guest nav
       const guestNav = document.createElement('nav');
       guestNav.className = 'main-nav global-nav';
       guestNav.innerHTML = `<a href="/contact" class="nav-item${isContact ? ' active' : ''}">Contact Us</a>`;
       headerContent.appendChild(guestNav);
+
       authSection.innerHTML = `
         <a href="/auth" class="btn btn-primary">Login</a>
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+          <span></span><span></span><span></span>
+        </button>
       `;
+
+      this._buildMobileDrawer(`
+        <a href="/contact" class="nav-item${isContact ? ' active' : ''}">Contact Us</a>
+        <div class="mobile-nav-drawer-divider"></div>
+        <a href="/auth" class="nav-item">Login</a>
+        <a href="/auth?mode=register" class="nav-item">Sign Up</a>
+      `);
     }
 
     headerContent.appendChild(authSection);
+  }
+
+  _buildMobileDrawer(linksHTML) {
+    let drawer = document.getElementById('mobileNavDrawer');
+    if (!drawer) {
+      drawer = document.createElement('div');
+      drawer.id = 'mobileNavDrawer';
+      drawer.className = 'mobile-nav-drawer';
+      document.body.appendChild(drawer);
+    }
+    drawer.innerHTML = `
+      <button class="mobile-nav-close" id="mobileNavClose" aria-label="Close menu">&#x2715;</button>
+      ${linksHTML}
+    `;
+  }
+
+  _closeDrawer() {
+    const drawer = document.getElementById('mobileNavDrawer');
+    const hamburger = document.getElementById('hamburgerBtn');
+    if (drawer) drawer.classList.remove('open');
+    if (hamburger) hamburger.classList.remove('open');
+    document.body.style.overflow = '';
   }
 
   setupEventListeners() {
@@ -144,13 +204,12 @@ class NavigationManager {
         profileDropdown.classList.toggle('show');
       });
 
-      // Close dropdown when clicking outside
       document.addEventListener('click', () => {
         profileDropdown.classList.remove('show');
       });
     }
 
-    // Logout button
+    // Desktop logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
@@ -159,6 +218,38 @@ class NavigationManager {
           window.location.href = '/';
         } catch (error) {
           console.error('Logout failed:', error);
+        }
+      });
+    }
+
+    // Hamburger open
+    const hamburger = document.getElementById('hamburgerBtn');
+    const drawer = document.getElementById('mobileNavDrawer');
+    if (hamburger && drawer) {
+      hamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = drawer.classList.toggle('open');
+        hamburger.classList.toggle('open', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+      });
+    }
+
+    // Drawer close button
+    const mobileClose = document.getElementById('mobileNavClose');
+    if (mobileClose) {
+      mobileClose.addEventListener('click', () => this._closeDrawer());
+    }
+
+    // Mobile logout
+    const mobileLogout = document.getElementById('mobileLogoutBtn');
+    if (mobileLogout) {
+      mobileLogout.addEventListener('click', async () => {
+        this._closeDrawer();
+        try {
+          await api.logout();
+          window.location.href = '/';
+        } catch (error) {
+          console.error('Mobile logout failed:', error);
         }
       });
     }

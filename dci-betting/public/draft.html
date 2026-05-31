@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Draft Room - Marching Fantasy League</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -584,6 +584,107 @@
             gap: 1rem;
             margin-top: 1rem;
         }
+
+        /* ── Mobile section tabs (Phase 3 draft picker) ──────────── */
+        .mobile-section-tabs {
+            display: none;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            flex-direction: row;
+            gap: 0.5rem;
+            padding: 0.25rem 0 0.75rem;
+            margin-bottom: 0.5rem;
+            scrollbar-width: none;
+        }
+
+        .mobile-section-tabs::-webkit-scrollbar { display: none; }
+
+        .section-tab {
+            flex-shrink: 0;
+            padding: 0.55rem 1rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.65);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+            min-height: 38px;
+        }
+
+        .section-tab.active {
+            background: #2F8F4E;
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 2px 8px rgba(47,143,78,0.4);
+        }
+
+        .section-tab.section-tab-taken {
+            opacity: 0.4;
+        }
+
+        /* ── Mobile responsive overrides ─────────────────────────── */
+        @media (max-width: 768px) {
+            .draft-container { padding: 1rem 0.85rem; }
+
+            /* Show tabs, hide filter dropdowns */
+            .mobile-section-tabs { display: flex; }
+            .filter-row { display: none; }
+
+            /* Turn banner: wrap content on narrow screens */
+            .turn-banner {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+            }
+            .turn-timer { font-size: 1.5rem; min-width: 48px; }
+
+            /* Caption grid: 2 columns */
+            .caption-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+
+            .caption-card { padding: 0.65rem; }
+            .caption-section { font-size: 0.75rem; }
+            .caption-score { font-size: 0.9rem; }
+            .caption-corps { font-size: 0.7rem; }
+
+            /* Invite row: stack on mobile */
+            .invite-row { flex-direction: column; }
+            .invite-input { width: 100%; }
+
+            /* Toast: full width centered */
+            .toast {
+                right: 1rem;
+                left: 1rem;
+                bottom: 1.25rem;
+                justify-content: center;
+                text-align: center;
+            }
+
+            /* Cards: tighter padding */
+            .card { padding: 1.1rem; }
+
+            /* Roster slot: bigger touch target */
+            .roster-slot { padding: 0.65rem 0; min-height: 40px; }
+            .slot-section { width: 100px; font-size: 0.72rem; }
+
+            /* Pick log entries: bigger touch target */
+            .pick-entry { padding: 0.5rem 0; }
+
+            /* Phase complete: standings table overflow */
+            .standings-table { display: block; overflow-x: auto; }
+
+            /* Final teams grid: 1 column */
+            .final-teams-grid { grid-template-columns: 1fr; }
+
+            /* Complete banner heading */
+            .complete-banner h2 { font-size: 1.7rem; }
+        }
     </style>
 </head>
 <body>
@@ -756,7 +857,16 @@
                             <span id="pause-msg">Draft paused — player disconnected.</span>
                         </div>
 
-                        <!-- Filters -->
+                        <!-- Mobile section tabs (shown on mobile instead of filter dropdowns) -->
+                        <div class="mobile-section-tabs" id="mobile-section-tabs">
+                            <button class="section-tab active" data-section="brass">Brass</button>
+                            <button class="section-tab" data-section="percussion">Percussion</button>
+                            <button class="section-tab" data-section="guard">Color Guard</button>
+                            <button class="section-tab" data-section="ge">Gen. Effect</button>
+                            <button class="section-tab" data-section="visual">Visual</button>
+                        </div>
+
+                        <!-- Filters (desktop only) -->
                         <div class="filter-row">
                             <select class="select-input" id="filter-corps">
                                 <option value="all">All Corps</option>
@@ -1269,7 +1379,7 @@
         renderMyRoster();
         renderPickLog();
 
-        // Filters
+        // Desktop filters
         document.getElementById('filter-corps').addEventListener('change', e => {
             S.filterCorps = e.target.value;
             renderCaptionGrid();
@@ -1278,6 +1388,25 @@
             S.filterSection = e.target.value;
             renderCaptionGrid();
         });
+
+        // Mobile section tabs
+        const mobileTabsEl = document.getElementById('mobile-section-tabs');
+        if (mobileTabsEl) {
+            // Default to first tab (Brass) on load
+            S.filterSection = 'brass';
+            renderCaptionGrid();
+
+            mobileTabsEl.querySelectorAll('.section-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    mobileTabsEl.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    S.filterSection = tab.dataset.section;
+                    S.filterCorps = 'all';
+                    document.getElementById('filter-corps').value = 'all';
+                    renderCaptionGrid();
+                });
+            });
+        }
 
         // All teams toggle
         const allTeamsCard = document.getElementById('all-teams-card');
@@ -1316,6 +1445,16 @@
         const myPickedSections = new Set(
             S.myPicks.map(p => { const c = getCaption(p.captionId); return c ? c.section : null; }).filter(Boolean)
         );
+
+        // Update mobile tab state to show which sections are already taken
+        const tabsEl = document.getElementById('mobile-section-tabs');
+        if (tabsEl) {
+            const sectionMap = { brass: 'Brass', percussion: 'Percussion', guard: 'Color Guard', ge: 'General Effect', visual: 'Visual Performance' };
+            tabsEl.querySelectorAll('.section-tab').forEach(tab => {
+                const sectionName = sectionMap[tab.dataset.section];
+                tab.classList.toggle('section-tab-taken', sectionName && myPickedSections.has(sectionName));
+            });
+        }
 
         grid.innerHTML = visible.map(c => {
             const drafted = S.draftedCaptions[c.id];
