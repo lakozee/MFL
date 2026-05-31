@@ -109,79 +109,15 @@
         </div>
     </section>
 
-    <!-- Stats Dashboard -->
-    <section class="stats-section" id="stats">
+    <!-- 2026 Season Schedule -->
+    <section class="tour-section" id="schedule">
         <div class="container">
             <div class="section-header">
-                <h2>2025 World Class Standings</h2>
-                <p>Top performing drum corps this season</p>
+                <h2>2026 DCI Season Schedule</h2>
+                <p>Every World Class performance this season</p>
             </div>
-
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card loading">
-                    <div class="spinner"></div>
-                    <p>Loading stats...</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Tour Dates Section -->
-    <section class="tour-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Upcoming Competitions</h2>
-                <p>Don't miss the next performances</p>
-            </div>
-
-            <div class="tour-dates">
-                <div class="tour-date-card">
-                    <div class="date-badge">
-                        <span class="month">JUN</span>
-                        <span class="day">21</span>
-                    </div>
-                    <div class="event-info">
-                        <h3>DCI West</h3>
-                        <p class="location">Stanford, CA</p>
-                        <p class="corps-count">12 corps competing</p>
-                    </div>
-                </div>
-
-                <div class="tour-date-card">
-                    <div class="date-badge">
-                        <span class="month">JUN</span>
-                        <span class="day">28</span>
-                    </div>
-                    <div class="event-info">
-                        <h3>DCI East</h3>
-                        <p class="location">Indianapolis, IN</p>
-                        <p class="corps-count">15 corps competing</p>
-                    </div>
-                </div>
-
-                <div class="tour-date-card">
-                    <div class="date-badge">
-                        <span class="month">JUL</span>
-                        <span class="day">12</span>
-                    </div>
-                    <div class="event-info">
-                        <h3>DCI Southeast</h3>
-                        <p class="location">Atlanta, GA</p>
-                        <p class="corps-count">14 corps competing</p>
-                    </div>
-                </div>
-
-                <div class="tour-date-card featured">
-                    <div class="date-badge">
-                        <span class="month">AUG</span>
-                        <span class="day">8</span>
-                    </div>
-                    <div class="event-info">
-                        <h3>DCI World Championships</h3>
-                        <p class="location">Indianapolis, IN</p>
-                        <p class="corps-count">All World Class corps</p>
-                    </div>
-                </div>
+            <div id="schedule-list" class="tour-dates" style="flex-direction:column;gap:0.5rem;">
+                <p style="color:rgba(255,255,255,0.5);text-align:center;padding:2rem 0;">Loading schedule...</p>
             </div>
         </div>
     </section>
@@ -250,12 +186,12 @@
     <script src="nav.js"></script>
     <script>
         async function initLandingPage() {
-            const [user, statsData] = await Promise.all([
+            const [user, scheduleData] = await Promise.all([
                 api.verifySession(),
-                fetch('/api/stats/corps?sort=score').then(r => r.json()).catch(() => null)
+                fetch('/api/stats/schedule').then(r => r.json()).catch(() => null)
             ]);
 
-            renderStats(statsData);
+            renderSchedule(scheduleData);
 
             const heroCta = document.getElementById('hero-cta');
 
@@ -279,55 +215,44 @@
             document.getElementById('cta-section').style.display = 'none';
 
             if (leagues.length === 0) {
-                // In a league — show Create League button
                 heroCta.insertAdjacentHTML('afterbegin',
                     '<a href="/app" class="btn btn-primary btn-lg">Create a League</a>'
                 );
             } else {
-                // In a league — show league standings dashboard
                 const league = leagues[0];
-                showLeagueDashboard(league, statsData);
+                showLeagueDashboard(league);
             }
         }
 
-        function renderStats(data) {
-            const statsGrid = document.getElementById('statsGrid');
-            if (!data || !data.corps) {
-                statsGrid.innerHTML = '<div class="stat-card error"><p>Failed to load stats</p></div>';
+        const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+        function renderSchedule(data) {
+            const list = document.getElementById('schedule-list');
+            if (!data || !data.competitions || data.competitions.length === 0) {
+                list.innerHTML = '<p style="color:rgba(255,255,255,0.5);text-align:center;padding:2rem 0;">No schedule available yet.</p>';
                 return;
             }
-            statsGrid.innerHTML = data.corps.slice(0, 6).map((corps, index) => `
-                <div class="stat-card">
-                    <div class="rank">#${index + 1}</div>
-                    <h3>${corps.corps_name}</h3>
-                    <div class="total-score">${parseFloat(corps.total_score || 0).toFixed(2)}</div>
-                    <div class="score-breakdown">
-                        <div class="score-item">
-                            <span class="label">Brass</span>
-                            <span class="value">${parseFloat(corps.avg_brass || 0).toFixed(2)}</span>
+            list.innerHTML = data.competitions.map(c => {
+                const d = new Date(c.date + 'T12:00:00');
+                const month = MONTHS[d.getMonth()];
+                const day = d.getDate();
+                const isChampionship = c.competition_type === 'championship';
+                return `
+                    <div class="tour-date-card${isChampionship ? ' featured' : ''}" style="width:100%;max-width:100%;box-sizing:border-box;">
+                        <div class="date-badge">
+                            <span class="month">${month}</span>
+                            <span class="day">${day}</span>
                         </div>
-                        <div class="score-item">
-                            <span class="label">Percussion</span>
-                            <span class="value">${parseFloat(corps.avg_percussion || 0).toFixed(2)}</span>
-                        </div>
-                        <div class="score-item">
-                            <span class="label">Guard</span>
-                            <span class="value">${parseFloat(corps.avg_guard || 0).toFixed(2)}</span>
-                        </div>
-                        <div class="score-item">
-                            <span class="label">GE</span>
-                            <span class="value">${parseFloat(corps.avg_ge || 0).toFixed(2)}</span>
-                        </div>
-                        <div class="score-item">
-                            <span class="label">Visual</span>
-                            <span class="value">${parseFloat(corps.avg_visual || 0).toFixed(2)}</span>
+                        <div class="event-info">
+                            <h3>${escHtml(c.name)}</h3>
+                            <p class="location">${escHtml(c.location)}</p>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
-        async function showLeagueDashboard(league, statsData) {
+        async function showLeagueDashboard(league) {
             const dashboard = document.getElementById('league-dashboard');
             const title = document.getElementById('league-dashboard-title');
             const grid = document.getElementById('league-standings-grid');

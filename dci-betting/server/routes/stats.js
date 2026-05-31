@@ -95,7 +95,7 @@ router.get('/corps', async (req, res) => {
         if (sort === 'date') orderBy = 'updated_at DESC';
 
         const result = await db.query(
-            `SELECT * FROM corps_stats WHERE season = 2025 ORDER BY ${orderBy}`
+            `SELECT * FROM corps_stats WHERE season = 2026 ORDER BY ${orderBy}`
         );
 
         res.json({ corps: result.rows });
@@ -119,6 +119,22 @@ router.get('/corps/:name', async (req, res) => {
     } catch (error) {
         console.error('Get corps history error:', error);
         res.status(500).json({ error: 'Failed to fetch corps history' });
+    }
+});
+
+// Public: list all competitions for the current season
+router.get('/schedule', async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT name, date, location, competition_type
+             FROM competitions
+             WHERE season = 2026
+             ORDER BY date ASC, name ASC`
+        );
+        res.json({ competitions: result.rows });
+    } catch (error) {
+        console.error('Get schedule error:', error);
+        res.status(500).json({ error: 'Failed to fetch schedule' });
     }
 });
 
