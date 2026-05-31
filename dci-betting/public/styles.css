@@ -124,7 +124,7 @@ h3 {
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-    padding: var(--spacing-lg) 0;
+    padding: 0.75rem 0;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -135,7 +135,7 @@ h3 {
     justify-content: space-between;
     align-items: center;
     gap: var(--spacing-xl);
-    padding: 8px 0;
+    padding: 4px 0;
 }
 
 .main-nav {
@@ -645,10 +645,10 @@ h3 {
 }
 
 .footer-logo-img {
-    height: 52px;
+    height: 28px;
     width: auto;
     mix-blend-mode: multiply;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 0.4rem;
 }
 
 .auth-logo {
@@ -1430,7 +1430,7 @@ h3 {
 }
 
 .footer {
-  padding: var(--spacing-2xl) 0;
+  padding: 1.5rem 0;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(20, 55, 25, 0.75);
 }
