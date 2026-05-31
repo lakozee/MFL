@@ -1306,25 +1306,25 @@ h3 {
 }
 
 .tour-date-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(20, 20, 20, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
   display: flex;
   gap: var(--spacing-lg);
   transition: all var(--transition-base);
-  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(6px);
 }
 
 .tour-date-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(47, 143, 78, 0.35);
-  box-shadow: 0 8px 32px rgba(47, 143, 78, 0.15);
+  border-color: rgba(125, 216, 153, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .tour-date-card.featured {
-  background: linear-gradient(135deg, rgba(47, 143, 78, 0.08) 0%, rgba(26, 110, 56, 0.06) 100%);
-  border-color: rgba(47, 143, 78, 0.4);
+  background: rgba(20, 20, 20, 0.92);
+  border-color: rgba(125, 216, 153, 0.45);
 }
 
 .date-badge {
@@ -1355,11 +1355,11 @@ h3 {
 .event-info h3 {
   font-size: 1.125rem;
   margin-bottom: var(--spacing-xs);
-  color: var(--color-text-primary);
+  color: #ffffff;
 }
 
 .event-info .location {
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: var(--spacing-xs);
 }
 
@@ -1378,6 +1378,10 @@ h3 {
 .feature-card {
   text-align: center;
   padding: var(--spacing-xl);
+  background: rgba(20, 20, 20, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(6px);
 }
 
 .feature-icon {
