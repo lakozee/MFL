@@ -87,15 +87,30 @@ ALTER TABLE corps_stats ALTER COLUMN total_score TYPE DECIMAL(7,2);
 
 CREATE INDEX IF NOT EXISTS idx_corps_stats_season ON corps_stats(season);
 
--- Seed sample corps stats — skipped if already present
+-- Remove stale corps stats from prior seasons
+DELETE FROM corps_stats WHERE season <> 2026;
+
+-- Seed 2026 corps stats — skipped if already present
 INSERT INTO corps_stats (corps_name, season, avg_brass, avg_percussion, avg_guard, avg_ge, avg_visual, total_score, competitions_count)
 VALUES
-    ('Blue Devils',            2025, 19.8, 19.7, 19.6, 19.9, 19.7, 98.7, 5),
-    ('Santa Clara Vanguard',   2025, 19.6, 19.8, 19.5, 19.7, 19.6, 98.2, 5),
-    ('Bluecoats',              2025, 19.5, 19.6, 19.8, 19.6, 19.5, 98.0, 5),
-    ('Carolina Crown',         2025, 19.7, 19.5, 19.4, 19.6, 19.7, 97.9, 5),
-    ('The Cavaliers',          2025, 19.4, 19.4, 19.3, 19.5, 19.6, 97.2, 5),
-    ('Boston Crusaders',       2025, 19.3, 19.7, 19.2, 19.4, 19.3, 96.9, 5)
+    ('Blue Devils',            2026, 19.8, 19.7, 19.6, 19.9, 19.7, 98.7, 5),
+    ('Santa Clara Vanguard',   2026, 19.6, 19.8, 19.5, 19.7, 19.6, 98.2, 5),
+    ('Bluecoats',              2026, 19.5, 19.6, 19.8, 19.6, 19.5, 98.0, 5),
+    ('Carolina Crown',         2026, 19.7, 19.5, 19.4, 19.6, 19.7, 97.9, 5),
+    ('The Cavaliers',          2026, 19.4, 19.4, 19.3, 19.5, 19.6, 97.2, 5),
+    ('Boston Crusaders',       2026, 19.3, 19.7, 19.2, 19.4, 19.3, 96.9, 5),
+    ('Phantom Regiment',       2026, 18.2, 17.9, 18.5, 18.4, 18.1, 91.1, 5),
+    ('Blue Stars',             2026, 17.4, 17.1, 17.6, 17.3, 17.0, 86.4, 5),
+    ('Madison Scouts',         2026, 17.2, 16.5, 16.2, 17.0, 16.8, 83.7, 5),
+    ('Blue Knights',           2026, 16.9, 17.3, 17.1, 16.7, 16.5, 84.5, 5),
+    ('Crossmen',               2026, 16.3, 16.0, 16.6, 15.9, 16.1, 80.9, 5),
+    ('Spirit of Atlanta',      2026, 16.0, 15.8, 16.3, 15.6, 15.9, 79.6, 5),
+    ('Pacific Crest',          2026, 15.6, 15.9, 15.4, 15.2, 15.5, 77.6, 5),
+    ('Music City',             2026, 15.3, 15.0, 15.6, 14.9, 15.1, 75.9, 5),
+    ('The Academy',            2026, 15.1, 14.9, 15.8, 14.6, 14.8, 75.2, 5),
+    ('Troopers',               2026, 14.6, 14.3, 14.9, 14.1, 14.5, 72.4, 5),
+    ('Colts',                  2026, 14.3, 14.1, 14.6, 13.9, 14.2, 71.1, 5),
+    ('Spartans',               2026, 13.6, 13.3, 13.9, 13.1, 13.5, 67.4, 5)
 ON CONFLICT (corps_name, season) DO NOTHING;
 
 -- League invite tokens
@@ -119,7 +134,7 @@ CREATE TABLE IF NOT EXISTS competitions (
     name VARCHAR(255) NOT NULL,
     date DATE NOT NULL,
     location VARCHAR(255),
-    season INTEGER DEFAULT 2025,
+    season INTEGER DEFAULT 2026,
     source_url TEXT,
     last_synced_at TIMESTAMP,
     competition_type VARCHAR(50) DEFAULT 'regular',
@@ -147,6 +162,53 @@ CREATE TABLE IF NOT EXISTS competition_scores (
 
 CREATE INDEX IF NOT EXISTS idx_competition_scores_competition ON competition_scores(competition_id);
 CREATE INDEX IF NOT EXISTS idx_competition_scores_corps ON competition_scores(corps_name);
+
+-- Clear all existing competition data (scores and competitions from all seasons)
+DELETE FROM competition_scores;
+DELETE FROM competitions;
+
+-- Seed 2026 DCI tour schedule
+INSERT INTO competitions (name, date, location, season, competition_type) VALUES
+    ('DCI Tour Preview',                      '2026-06-26', 'Muncie, IN',         2026, 'regular'),
+    ('Drums Along the Rockies',               '2026-06-27', 'Fort Collins, CO',   2026, 'regular'),
+    ('Corps Encore',                          '2026-06-28', 'Ogden, UT',          2026, 'regular'),
+    ('Drums Along the Columbia',              '2026-06-29', 'Kennewick, WA',      2026, 'regular'),
+    ('Northwest Youth Music Games Seattle',   '2026-06-30', 'Seattle, WA',        2026, 'regular'),
+    ('Drums Across Nebraska',                 '2026-07-01', 'Omaha, NE',          2026, 'regular'),
+    ('Northwest Youth Music Games Portland',  '2026-07-01', 'Portland, OR',       2026, 'regular'),
+    ('MidCal Showcase',                       '2026-07-02', 'Camarillo, CA',      2026, 'regular'),
+    ('Show of Shows',                         '2026-07-03', 'Rockford, IL',       2026, 'regular'),
+    ('DCI Capital Classic',                   '2026-07-03', 'Sacramento, CA',     2026, 'regular'),
+    ('River City Rhapsody',                   '2026-07-05', 'La Crosse, WI',      2026, 'regular'),
+    ('DCI West',                              '2026-07-05', 'Stanford, CA',       2026, 'regular'),
+    ('Drums Across the Smokies',              '2026-07-07', 'Sevierville, TN',    2026, 'regular'),
+    ('The Kiwanis Thunder of Drums',          '2026-07-07', 'Mankato, MN',        2026, 'regular'),
+    ('Drums Across America',                  '2026-07-08', 'Newnan, GA',         2026, 'regular'),
+    ('Celebration in Brass',                  '2026-07-08', 'Des Moines, IA',     2026, 'regular'),
+    ('Gold Showcase',                         '2026-07-09', 'Santa Clarita, CA',  2026, 'regular'),
+    ('DCI Northern Alabama',                  '2026-07-09', 'Muscle Shoals, AL',  2026, 'regular'),
+    ('Music on the March',                    '2026-07-10', 'Dubuque, IA',        2026, 'regular'),
+    ('Western Corps Connection',              '2026-07-10', 'Walnut, CA',         2026, 'regular'),
+    ('Cavalcade of Brass',                    '2026-07-10', 'Lisle, IL',          2026, 'regular'),
+    ('The Whitewater Classic',                '2026-07-11', 'Whitewater, WI',     2026, 'regular'),
+    ('Drum Corps at the Rose Bowl',           '2026-07-11', 'Pasadena, CA',       2026, 'regular'),
+    ('DCI Little Rock',                       '2026-07-11', 'Little Rock, AR',    2026, 'regular'),
+    ('Brass Impact',                          '2026-07-13', 'Olathe, KS',         2026, 'regular'),
+    ('Drums Across the Desert',               '2026-07-13', 'Mesa, AZ',           2026, 'regular'),
+    ('DCI Broken Arrow',                      '2026-07-14', 'Broken Arrow, OK',   2026, 'regular'),
+    ('DCI Hutchinson',                        '2026-07-14', 'Hutchinson, KS',     2026, 'regular'),
+    ('DCI New Mexico',                        '2026-07-14', 'Albuquerque, NM',    2026, 'regular'),
+    ('DCI Central Texas',                     '2026-07-16', 'Killeen, TX',        2026, 'regular'),
+    ('DCI Denton',                            '2026-07-16', 'Denton, TX',         2026, 'regular'),
+    ('DCI Southwestern Championship',         '2026-07-18', 'San Antonio, TX',    2026, 'championship'),
+    ('DCI Southeastern Championship',         '2026-07-25', 'Atlanta, GA',        2026, 'championship'),
+    ('DCI Midwestern Championship',           '2026-07-25', 'DeKalb, IL',         2026, 'championship'),
+    ('DCI Eastern Classic Day 1',             '2026-07-31', 'Allentown, PA',      2026, 'championship'),
+    ('DCI Eastern Classic Day 2',             '2026-08-01', 'Allentown, PA',      2026, 'championship'),
+    ('DCI World Championship Prelims',        '2026-08-06', 'Indianapolis, IN',   2026, 'championship'),
+    ('DCI World Championship Semifinals',     '2026-08-07', 'Indianapolis, IN',   2026, 'championship'),
+    ('DCI World Championship Finals',         '2026-08-08', 'Indianapolis, IN',   2026, 'championship')
+ON CONFLICT (name, season) DO NOTHING;
 
 -- Draft sessions for real-time draft lobby
 CREATE TABLE IF NOT EXISTS draft_sessions (
