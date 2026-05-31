@@ -93,25 +93,31 @@ DELETE FROM corps_stats WHERE season <> 2026;
 -- Seed 2026 corps stats — skipped if already present
 INSERT INTO corps_stats (corps_name, season, avg_brass, avg_percussion, avg_guard, avg_ge, avg_visual, total_score, competitions_count)
 VALUES
-    ('Blue Devils',            2026, 19.8, 19.7, 19.6, 19.9, 19.7, 98.7, 5),
-    ('Santa Clara Vanguard',   2026, 19.6, 19.8, 19.5, 19.7, 19.6, 98.2, 5),
-    ('Bluecoats',              2026, 19.5, 19.6, 19.8, 19.6, 19.5, 98.0, 5),
-    ('Carolina Crown',         2026, 19.7, 19.5, 19.4, 19.6, 19.7, 97.9, 5),
-    ('The Cavaliers',          2026, 19.4, 19.4, 19.3, 19.5, 19.6, 97.2, 5),
-    ('Boston Crusaders',       2026, 19.3, 19.7, 19.2, 19.4, 19.3, 96.9, 5),
-    ('Phantom Regiment',       2026, 18.2, 17.9, 18.5, 18.4, 18.1, 91.1, 5),
-    ('Blue Stars',             2026, 17.4, 17.1, 17.6, 17.3, 17.0, 86.4, 5),
-    ('Madison Scouts',         2026, 17.2, 16.5, 16.2, 17.0, 16.8, 83.7, 5),
-    ('Blue Knights',           2026, 16.9, 17.3, 17.1, 16.7, 16.5, 84.5, 5),
-    ('Crossmen',               2026, 16.3, 16.0, 16.6, 15.9, 16.1, 80.9, 5),
-    ('Spirit of Atlanta',      2026, 16.0, 15.8, 16.3, 15.6, 15.9, 79.6, 5),
-    ('Pacific Crest',          2026, 15.6, 15.9, 15.4, 15.2, 15.5, 77.6, 5),
-    ('Music City',             2026, 15.3, 15.0, 15.6, 14.9, 15.1, 75.9, 5),
-    ('The Academy',            2026, 15.1, 14.9, 15.8, 14.6, 14.8, 75.2, 5),
-    ('Troopers',               2026, 14.6, 14.3, 14.9, 14.1, 14.5, 72.4, 5),
-    ('Colts',                  2026, 14.3, 14.1, 14.6, 13.9, 14.2, 71.1, 5),
-    ('Spartans',               2026, 13.6, 13.3, 13.9, 13.1, 13.5, 67.4, 5)
+    ('Blue Devils',            2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Santa Clara Vanguard',   2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Bluecoats',              2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Carolina Crown',         2026, 0, 0, 0, 0, 0, 0, 0),
+    ('The Cavaliers',          2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Boston Crusaders',       2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Phantom Regiment',       2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Blue Stars',             2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Madison Scouts',         2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Blue Knights',           2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Crossmen',               2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Spirit of Atlanta',      2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Pacific Crest',          2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Music City',             2026, 0, 0, 0, 0, 0, 0, 0),
+    ('The Academy',            2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Troopers',               2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Colts',                  2026, 0, 0, 0, 0, 0, 0, 0),
+    ('Spartans',               2026, 0, 0, 0, 0, 0, 0, 0)
 ON CONFLICT (corps_name, season) DO NOTHING;
+
+-- Reset any placeholder scores seeded before the season started
+UPDATE corps_stats
+SET avg_brass=0, avg_percussion=0, avg_guard=0, avg_ge=0, avg_visual=0,
+    total_score=0, competitions_count=0
+WHERE season=2026 AND competitions_count=5 AND total_score > 50;
 
 -- League invite tokens
 CREATE TABLE IF NOT EXISTS league_invites (

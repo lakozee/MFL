@@ -24,7 +24,7 @@ async function recalculateCorpsAverages() {
             ) AS comp_seq
           FROM competition_scores cs
           JOIN competitions c ON cs.competition_id = c.id
-          WHERE c.season = 2025
+          WHERE c.season = 2026
         ),
         qualifying AS (
           SELECT * FROM ranked
@@ -54,7 +54,7 @@ async function recalculateCorpsAverages() {
           competitions_count = t.qualifying_count,
           updated_at        = NOW()
         FROM totals t
-        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2025
+        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
     `);
 }
 
@@ -96,7 +96,7 @@ router.get('/users', async (req, res) => {
                 END
               ), 0) as team_score
               FROM draft_picks dp
-              LEFT JOIN corps_stats cs ON cs.season = 2025 AND cs.corps_name = CASE
+              LEFT JOIN corps_stats cs ON cs.season = 2026 AND cs.corps_name = CASE
                 WHEN dp.caption_id LIKE 'bd-%' THEN 'Blue Devils'
                 WHEN dp.caption_id LIKE 'scv-%' THEN 'Santa Clara Vanguard'
                 WHEN dp.caption_id LIKE 'bloo-%' THEN 'Bluecoats'
@@ -303,7 +303,7 @@ router.get('/leagues/:id/members', async (req, res) => {
                 END
               ), 0) as team_score
               FROM draft_picks dp
-              LEFT JOIN corps_stats cs ON cs.season = 2025 AND cs.corps_name = CASE
+              LEFT JOIN corps_stats cs ON cs.season = 2026 AND cs.corps_name = CASE
                 WHEN dp.caption_id LIKE 'bd-%' THEN 'Blue Devils'
                 WHEN dp.caption_id LIKE 'scv-%' THEN 'Santa Clara Vanguard'
                 WHEN dp.caption_id LIKE 'bloo-%' THEN 'Bluecoats'
@@ -347,7 +347,7 @@ router.delete('/leagues/:id/members/:userId', async (req, res) => {
 router.get('/corps', async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT * FROM corps_stats WHERE season = 2025 ORDER BY total_score DESC'
+            'SELECT * FROM corps_stats WHERE season = 2026 ORDER BY total_score DESC'
         );
         res.json(result.rows);
     } catch (error) {
@@ -419,7 +419,7 @@ router.get('/competitions', async (req, res) => {
 
 // ─── POST /api/admin/competitions ────────────────────────────────────────────
 router.post('/competitions', async (req, res) => {
-    const { name, date, location, season = 2025 } = req.body;
+    const { name, date, location, season = 2026 } = req.body;
 
     if (!name || !date) {
         return res.status(400).json({ error: 'Name and date are required' });
@@ -557,7 +557,7 @@ async function upsertCompetitionScores(competitionId, scores) {
         // Upsert corps_stats row so new corps discovered via scrape are tracked
         await db.query(
             `INSERT INTO corps_stats (corps_name, season, avg_brass, avg_percussion, avg_guard, avg_ge, avg_visual, total_score, competitions_count)
-             VALUES ($1, 2025, 0, 0, 0, 0, 0, 0, 0)
+             VALUES ($1, 2026, 0, 0, 0, 0, 0, 0, 0)
              ON CONFLICT (corps_name, season) DO NOTHING`,
             [s.corps_name]
         );

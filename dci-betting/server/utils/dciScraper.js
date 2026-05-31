@@ -16,7 +16,7 @@ const cheerio = require('cheerio');
 const DCI_BASE_URL = 'https://www.dci.org';
 const DCI_SCORES_URL = 'https://www.dci.org/scores';
 const DCI_EVENTS_URL = 'https://www.dci.org/events/';
-const CURRENT_SEASON = 2025;
+const CURRENT_SEASON = 2026;
 
 // ─── HTTP client ──────────────────────────────────────────────────────────────
 
