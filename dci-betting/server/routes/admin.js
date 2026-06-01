@@ -19,6 +19,7 @@ async function recalculateCorpsAverages() {
             cs.corps_name,
             cs.brass, cs.percussion, cs.guard, cs.ge, cs.visual,
             c.competition_type,
+            c.name AS competition_name,
             ROW_NUMBER() OVER (
               PARTITION BY cs.corps_name ORDER BY c.date ASC
             ) AS comp_seq
@@ -26,10 +27,29 @@ async function recalculateCorpsAverages() {
           JOIN competitions c ON cs.competition_id = c.id
           WHERE c.season = 2026
         ),
+        -- Corps whose 7th competition of the season is a named regional championship.
+        -- For these corps, the 6th show replaces the 7th in the ordinal scoring slots
+        -- (the regional still counts once via the championship rule).
+        corps_with_regional_7th AS (
+          SELECT corps_name FROM ranked
+          WHERE comp_seq = 7
+            AND (
+              LOWER(competition_name) LIKE '%southwestern%'
+           OR LOWER(competition_name) LIKE '%san antonio%'
+           OR LOWER(competition_name) LIKE '%southeastern%'
+           OR LOWER(competition_name) LIKE '%midwestern%'
+           OR LOWER(competition_name) LIKE '%eastern classic%'
+           OR LOWER(competition_name) LIKE '%allentown%'
+            )
+        ),
         qualifying AS (
           SELECT * FROM ranked
           WHERE competition_type = 'championship'
-             OR comp_seq IN (1, 3, 5, 7)
+             OR comp_seq IN (1, 3, 5)
+             -- Normal case: 7th counts ordinally when it is not a regional
+             OR (comp_seq = 7 AND corps_name NOT IN (SELECT corps_name FROM corps_with_regional_7th))
+             -- Regional-7th case: substitute 6th in the ordinal slot instead
+             OR (comp_seq = 6 AND corps_name IN (SELECT corps_name FROM corps_with_regional_7th))
         ),
         totals AS (
           SELECT
