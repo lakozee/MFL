@@ -186,12 +186,14 @@
     <script src="nav.js"></script>
     <script>
         async function initLandingPage() {
-            const [user, scheduleData] = await Promise.all([
-                api.verifySession(),
-                fetch('/api/stats/schedule').then(r => r.json()).catch(() => null)
-            ]);
+            // Load schedule independently so a slow/failing schedule API
+            // cannot block the auth check or leave the section stuck loading.
+            fetch('/api/stats/schedule')
+                .then(r => r.json())
+                .then(data => renderSchedule(data))
+                .catch(() => renderSchedule(null));
 
-            renderSchedule(scheduleData);
+            const user = await api.verifySession();
 
             const heroCta = document.getElementById('hero-cta');
 
