@@ -169,11 +169,9 @@ CREATE TABLE IF NOT EXISTS competition_scores (
 CREATE INDEX IF NOT EXISTS idx_competition_scores_competition ON competition_scores(competition_id);
 CREATE INDEX IF NOT EXISTS idx_competition_scores_corps ON competition_scores(corps_name);
 
--- Clear all existing competition data (scores and competitions from all seasons)
-DELETE FROM competition_scores;
-DELETE FROM competitions;
-
--- Seed 2026 DCI tour schedule
+-- Seed 2026 DCI tour schedule.
+-- Uses DO UPDATE so date/location/type stay current on every deploy
+-- without deleting admin-entered competition scores.
 INSERT INTO competitions (name, date, location, season, competition_type) VALUES
     ('DCI Tour Preview',                      '2026-06-26', 'Muncie, IN',         2026, 'regular'),
     ('Drums Along the Rockies',               '2026-06-27', 'Fort Collins, CO',   2026, 'regular'),
@@ -214,7 +212,10 @@ INSERT INTO competitions (name, date, location, season, competition_type) VALUES
     ('DCI World Championship Prelims',        '2026-08-06', 'Indianapolis, IN',   2026, 'championship'),
     ('DCI World Championship Semifinals',     '2026-08-07', 'Indianapolis, IN',   2026, 'championship'),
     ('DCI World Championship Finals',         '2026-08-08', 'Indianapolis, IN',   2026, 'championship')
-ON CONFLICT (name, season) DO NOTHING;
+ON CONFLICT (name, season) DO UPDATE SET
+    date             = EXCLUDED.date,
+    location         = EXCLUDED.location,
+    competition_type = EXCLUDED.competition_type;
 
 -- Draft sessions for real-time draft lobby
 CREATE TABLE IF NOT EXISTS draft_sessions (
