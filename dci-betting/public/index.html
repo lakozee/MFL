@@ -224,7 +224,8 @@
             }
         }
 
-        const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const MONTHS_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
         function renderSchedule(data) {
             const list = document.getElementById('schedule-list');
@@ -234,18 +235,19 @@
             }
             list.innerHTML = data.competitions.map(c => {
                 const d = new Date(c.date + 'T12:00:00');
-                const month = MONTHS[d.getMonth()];
+                const monthShort = MONTHS_SHORT[d.getMonth()];
+                const monthFull  = MONTHS_FULL[d.getMonth()];
                 const day = d.getDate();
                 const isChampionship = c.competition_type === 'championship';
                 return `
                     <div class="tour-date-card${isChampionship ? ' featured' : ''}" style="width:100%;max-width:100%;box-sizing:border-box;">
                         <div class="date-badge">
-                            <span class="month">${month}</span>
+                            <span class="month">${monthShort.toUpperCase()}</span>
                             <span class="day">${day}</span>
                         </div>
                         <div class="event-info">
                             <h3>${escHtml(c.name)}</h3>
-                            <p class="location">${escHtml(c.location)}</p>
+                            <p class="location">${monthFull} ${day} &middot; ${escHtml(c.location)}</p>
                         </div>
                     </div>
                 `;
