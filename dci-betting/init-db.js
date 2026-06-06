@@ -29,10 +29,27 @@ async function initDb() {
         const schemaPath = path.join(__dirname, 'database', 'schema.sql');
         const sql = fs.readFileSync(schemaPath, 'utf8');
 
-        await client.query(sql);
+        // Execute each statement individually so one failure cannot block
+        // the rest (e.g. a redundant ALTER TABLE won't abort the seed INSERT).
+        const statements = sql
+            .replace(/--[^\n]*/g, '')   // strip line comments
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        let warnings = 0;
+        for (const stmt of statements) {
+            try {
+                await client.query(stmt);
+            } catch (err) {
+                console.warn(`[init-db] warning: ${err.message.split('\n')[0]}`);
+                warnings++;
+            }
+        }
+
         client.release();
 
-        console.log('[init-db] Schema applied successfully.');
+        console.log(`[init-db] Schema applied — ${warnings} warning(s).`);
     } catch (err) {
         console.error('[init-db] ERROR: Failed to initialize database:', err.message);
         process.exit(1);

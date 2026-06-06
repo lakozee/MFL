@@ -212,10 +212,7 @@ INSERT INTO competitions (name, date, location, season, competition_type) VALUES
     ('DCI World Championship Prelims',        '2026-08-06', 'Indianapolis, IN',   2026, 'championship'),
     ('DCI World Championship Semifinals',     '2026-08-07', 'Indianapolis, IN',   2026, 'championship'),
     ('DCI World Championship Finals',         '2026-08-08', 'Indianapolis, IN',   2026, 'championship')
-ON CONFLICT (name, season) DO UPDATE SET
-    date             = EXCLUDED.date,
-    location         = EXCLUDED.location,
-    competition_type = EXCLUDED.competition_type;
+ON CONFLICT DO NOTHING;
 
 -- Draft sessions for real-time draft lobby
 CREATE TABLE IF NOT EXISTS draft_sessions (
