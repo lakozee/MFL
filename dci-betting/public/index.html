@@ -188,10 +188,16 @@
         async function initLandingPage() {
             // Load schedule independently so a slow/failing schedule API
             // cannot block the auth check or leave the section stuck loading.
-            fetch('/api/stats/schedule')
+            fetch('/api/stats/schedule', { cache: 'no-store' })
                 .then(r => r.json())
-                .then(data => renderSchedule(data))
-                .catch(() => renderSchedule(null));
+                .then(data => {
+                    console.log('[schedule] response:', data);
+                    renderSchedule(data);
+                })
+                .catch(err => {
+                    console.error('[schedule] fetch error:', err);
+                    renderSchedule(null);
+                });
 
             const user = await api.verifySession();
 
