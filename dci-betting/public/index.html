@@ -247,7 +247,7 @@
                 let monthShortUpper = '';
                 let dayNum = '';
                 if (c.date) {
-                    const d = new Date(c.date + 'T12:00:00');
+                    const d = new Date(c.date.substring(0, 10) + 'T12:00:00');
                     monthShortUpper = MONTHS_SHORT[d.getMonth()].toUpperCase();
                     dayNum = d.getDate();
                     dateLabel = `${MONTHS_FULL[d.getMonth()]} ${dayNum} &middot; `;
