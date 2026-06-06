@@ -131,6 +131,7 @@ router.get('/schedule', async (req, res) => {
              WHERE season = 2026
              ORDER BY date ASC, name ASC`
         );
+        res.set('Cache-Control', 'no-store');
         res.json({ competitions: result.rows });
     } catch (error) {
         console.error('Get schedule error:', error);
