@@ -164,6 +164,10 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`[server] Fantasy DCI running on port ${PORT}`);
     console.log(`[server] Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log('[server] Socket.io draft system active');
+
+    pool.query('SELECT COUNT(*) FROM competitions WHERE season = 2026')
+        .then(r => console.log(`[server] competitions(2026) count: ${r.rows[0].count}`))
+        .catch(err => console.error('[server] competitions check failed:', err.message));
 });
 
 module.exports = app;

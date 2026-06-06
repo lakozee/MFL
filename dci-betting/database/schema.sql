@@ -147,7 +147,11 @@ CREATE TABLE IF NOT EXISTS competitions (
     UNIQUE(name, season)
 );
 
--- Add competition_type to existing DBs that didn't have it
+-- Ensure all competitions columns exist on older DB instances
+ALTER TABLE competitions ADD COLUMN IF NOT EXISTS season INTEGER DEFAULT 2026;
+ALTER TABLE competitions ADD COLUMN IF NOT EXISTS location VARCHAR(255);
+ALTER TABLE competitions ADD COLUMN IF NOT EXISTS source_url TEXT;
+ALTER TABLE competitions ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMP;
 ALTER TABLE competitions ADD COLUMN IF NOT EXISTS competition_type VARCHAR(50) DEFAULT 'regular';
 
 CREATE INDEX IF NOT EXISTS idx_competitions_date ON competitions(date DESC);
