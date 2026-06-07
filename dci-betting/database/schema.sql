@@ -184,6 +184,7 @@ INSERT INTO competitions (name, date, location, season, competition_type) VALUES
     ('Northwest Youth Music Games Seattle',   '2026-06-30', 'Seattle, WA',        2026, 'regular'),
     ('Drums Across Nebraska',                 '2026-07-01', 'Omaha, NE',          2026, 'regular'),
     ('Northwest Youth Music Games Portland',  '2026-07-01', 'Portland, OR',       2026, 'regular'),
+    ('Preview of Champions',                   '2026-07-02', 'Nashua, NH',         2026, 'regular'),
     ('MidCal Showcase',                       '2026-07-02', 'Camarillo, CA',      2026, 'regular'),
     ('Show of Shows',                         '2026-07-03', 'Rockford, IL',       2026, 'regular'),
     ('DCI Capital Classic',                   '2026-07-03', 'Sacramento, CA',     2026, 'regular'),
