@@ -881,10 +881,13 @@
                             <tr>
                                 <th>Corps</th>
                                 <th>Brass</th>
+                                <th>Music Analysis</th>
                                 <th>Perc</th>
-                                <th>Guard</th>
-                                <th>GE</th>
-                                <th>Visual</th>
+                                <th>Color Guard</th>
+                                <th>GE 1</th>
+                                <th>GE 2</th>
+                                <th>Visual Prof.</th>
+                                <th>Visual Analysis</th>
                                 <th>Total</th>
                                 <th></th>
                             </tr>
@@ -1075,7 +1078,19 @@ const CORPS_LIST = [
     'Bluecoats',
     'Carolina Crown',
     'The Cavaliers',
-    'Boston Crusaders'
+    'Boston Crusaders',
+    'Phantom Regiment',
+    'Blue Stars',
+    'Madison Scouts',
+    'Blue Knights',
+    'Crossmen',
+    'Spirit of Atlanta',
+    'Pacific Crest',
+    'Music City',
+    'The Academy',
+    'Troopers',
+    'Colts',
+    'Spartans'
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1463,27 +1478,30 @@ async function loadCorps() {
         renderCorps();
     } catch (e) {
         document.getElementById('corps-tbody').innerHTML =
-            `<tr><td colspan="8"><div class="empty-state">Failed to load corps: ${escHtml(e.message)}</div></td></tr>`;
+            `<tr><td colspan="11"><div class="empty-state">Failed to load corps: ${escHtml(e.message)}</div></td></tr>`;
     }
 }
 
 function renderCorps() {
     const tbody = document.getElementById('corps-tbody');
     if (!corpsData.length) {
-        tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">No corps data.</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state">No corps data.</div></td></tr>';
         return;
     }
     tbody.innerHTML = corpsData.map(c => {
         if (c.id === editingCorpsId) {
             return `<tr class="corps-edit-row" id="corps-row-${c.id}">
-                <td class="td-primary" colspan="8">
+                <td class="td-primary" colspan="11">
                     <div class="inline-edit-form">
                         <span style="font-weight:600;min-width:120px;color:var(--color-text-primary)">${escHtml(c.corps_name)}</span>
-                        <input type="number" class="inline-input" id="ce-brass" value="${c.avg_brass}" step="0.01" min="0" max="20" placeholder="Brass">
-                        <input type="number" class="inline-input" id="ce-perc" value="${c.avg_percussion}" step="0.01" min="0" max="20" placeholder="Perc">
-                        <input type="number" class="inline-input" id="ce-guard" value="${c.avg_guard}" step="0.01" min="0" max="20" placeholder="Guard">
-                        <input type="number" class="inline-input" id="ce-ge" value="${c.avg_ge}" step="0.01" min="0" max="20" placeholder="GE">
-                        <input type="number" class="inline-input" id="ce-visual" value="${c.avg_visual}" step="0.01" min="0" max="20" placeholder="Visual">
+                        <input type="number" class="inline-input" id="ce-brass" value="${c.avg_brass}" step="0.01" min="0" placeholder="Brass">
+                        <input type="number" class="inline-input" id="ce-music-analysis" value="${c.avg_music_analysis}" step="0.01" min="0" placeholder="Music Analysis">
+                        <input type="number" class="inline-input" id="ce-perc" value="${c.avg_percussion}" step="0.01" min="0" placeholder="Perc">
+                        <input type="number" class="inline-input" id="ce-color-guard" value="${c.avg_color_guard}" step="0.01" min="0" placeholder="Color Guard">
+                        <input type="number" class="inline-input" id="ce-ge1" value="${c.avg_ge1}" step="0.01" min="0" placeholder="GE 1">
+                        <input type="number" class="inline-input" id="ce-ge2" value="${c.avg_ge2}" step="0.01" min="0" placeholder="GE 2">
+                        <input type="number" class="inline-input" id="ce-visual-prof" value="${c.avg_visual_proficiency}" step="0.01" min="0" placeholder="Visual Prof.">
+                        <input type="number" class="inline-input" id="ce-visual-analysis" value="${c.avg_visual_analysis}" step="0.01" min="0" placeholder="Visual Analysis">
                         <button class="btn btn-primary btn-sm" onclick="saveCorps(${c.id})">Save</button>
                         <button class="btn btn-secondary btn-sm" onclick="cancelEditCorps()">Cancel</button>
                     </div>
@@ -1493,10 +1511,13 @@ function renderCorps() {
         return `<tr id="corps-row-${c.id}">
             <td class="td-primary">${escHtml(c.corps_name)}</td>
             <td>${c.avg_brass}</td>
+            <td>${c.avg_music_analysis}</td>
             <td>${c.avg_percussion}</td>
-            <td>${c.avg_guard}</td>
-            <td>${c.avg_ge}</td>
-            <td>${c.avg_visual}</td>
+            <td>${c.avg_color_guard}</td>
+            <td>${c.avg_ge1}</td>
+            <td>${c.avg_ge2}</td>
+            <td>${c.avg_visual_proficiency}</td>
+            <td>${c.avg_visual_analysis}</td>
             <td><strong>${c.total_score}</strong></td>
             <td><button class="btn btn-secondary btn-sm" onclick="startEditCorps(${c.id})">Edit</button></td>
         </tr>`;
@@ -1515,11 +1536,14 @@ function cancelEditCorps() {
 
 async function saveCorps(id) {
     const payload = {
-        avg_brass:      parseFloat(document.getElementById('ce-brass').value),
-        avg_percussion: parseFloat(document.getElementById('ce-perc').value),
-        avg_guard:      parseFloat(document.getElementById('ce-guard').value),
-        avg_ge:         parseFloat(document.getElementById('ce-ge').value),
-        avg_visual:     parseFloat(document.getElementById('ce-visual').value)
+        avg_brass:              parseFloat(document.getElementById('ce-brass').value),
+        avg_music_analysis:     parseFloat(document.getElementById('ce-music-analysis').value),
+        avg_percussion:         parseFloat(document.getElementById('ce-perc').value),
+        avg_color_guard:        parseFloat(document.getElementById('ce-color-guard').value),
+        avg_ge1:                parseFloat(document.getElementById('ce-ge1').value),
+        avg_ge2:                parseFloat(document.getElementById('ce-ge2').value),
+        avg_visual_proficiency: parseFloat(document.getElementById('ce-visual-prof').value),
+        avg_visual_analysis:    parseFloat(document.getElementById('ce-visual-analysis').value)
     };
 
     try {
@@ -1755,11 +1779,14 @@ function openEditScores(compId, compName) {
         const val = (field) => s[field] != null ? parseFloat(s[field]).toFixed(2) : '';
         return `<tr>
             <td style="padding:6px 8px;font-weight:600">${escHtml(corps)}</td>
-            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="brass" value="${val('brass')}" placeholder="—"></td>
-            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="percussion" value="${val('percussion')}" placeholder="—"></td>
-            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="guard" value="${val('guard')}" placeholder="—"></td>
-            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="ge" value="${val('ge')}" placeholder="—"></td>
-            <td style="padding:4px"><input type="number" step="0.01" min="0" max="20" class="score-input" data-corps="${escHtml(corps)}" data-field="visual" value="${val('visual')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="brass" value="${val('brass')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="music_analysis" value="${val('music_analysis')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="percussion" value="${val('percussion')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="color_guard" value="${val('color_guard')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="ge1" value="${val('ge1')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="ge2" value="${val('ge2')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="visual_proficiency" value="${val('visual_proficiency')}" placeholder="—"></td>
+            <td style="padding:4px"><input type="number" step="0.01" min="0" class="score-input" data-corps="${escHtml(corps)}" data-field="visual_analysis" value="${val('visual_analysis')}" placeholder="—"></td>
         </tr>`;
     }).join('');
 
@@ -1769,10 +1796,13 @@ function openEditScores(compId, compName) {
                 <tr style="color:var(--color-text-muted);text-align:left">
                     <th style="padding:6px 8px">Corps</th>
                     <th style="padding:6px 8px">Brass</th>
+                    <th style="padding:6px 8px">Music Analysis</th>
                     <th style="padding:6px 8px">Percussion</th>
-                    <th style="padding:6px 8px">Guard</th>
-                    <th style="padding:6px 8px">GE</th>
-                    <th style="padding:6px 8px">Visual</th>
+                    <th style="padding:6px 8px">Color Guard</th>
+                    <th style="padding:6px 8px">GE 1</th>
+                    <th style="padding:6px 8px">GE 2</th>
+                    <th style="padding:6px 8px">Visual Proficiency</th>
+                    <th style="padding:6px 8px">Visual Analysis</th>
                 </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -1797,7 +1827,8 @@ document.getElementById('save-scores-btn').addEventListener('click', async () =>
     });
 
     const scores = Object.values(scoreMap).filter(s =>
-        s.brass || s.percussion || s.guard || s.ge || s.visual
+        s.brass || s.music_analysis || s.percussion || s.color_guard ||
+        s.ge1 || s.ge2 || s.visual_proficiency || s.visual_analysis
     );
 
     try {

@@ -61,63 +61,68 @@ CREATE INDEX IF NOT EXISTS idx_draft_picks_league ON draft_picks(league_id);
 
 -- Corps statistics
 -- NOTE: avg_* columns store sums (not averages) of qualifying show scores
--- DECIMAL(6,2) supports values up to 9999.99, sufficient for multi-show sums
 CREATE TABLE IF NOT EXISTS corps_stats (
     id SERIAL PRIMARY KEY,
     corps_name VARCHAR(255) NOT NULL,
     season INTEGER NOT NULL,
     avg_brass DECIMAL(6,2),
+    avg_music_analysis DECIMAL(6,2),
     avg_percussion DECIMAL(6,2),
-    avg_guard DECIMAL(6,2),
-    avg_ge DECIMAL(6,2),
-    avg_visual DECIMAL(6,2),
+    avg_color_guard DECIMAL(6,2),
+    avg_ge1 DECIMAL(6,2),
+    avg_ge2 DECIMAL(6,2),
+    avg_visual_proficiency DECIMAL(6,2),
+    avg_visual_analysis DECIMAL(6,2),
     total_score DECIMAL(7,2),
     competitions_count INTEGER DEFAULT 0,
     updated_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(corps_name, season)
 );
 
--- Widen existing columns in case DB was created with old schema (DECIMAL(4,2) or (5,2))
+-- Ensure all corps_stats columns exist on older DB instances
 ALTER TABLE corps_stats ALTER COLUMN avg_brass TYPE DECIMAL(6,2);
 ALTER TABLE corps_stats ALTER COLUMN avg_percussion TYPE DECIMAL(6,2);
-ALTER TABLE corps_stats ALTER COLUMN avg_guard TYPE DECIMAL(6,2);
-ALTER TABLE corps_stats ALTER COLUMN avg_ge TYPE DECIMAL(6,2);
-ALTER TABLE corps_stats ALTER COLUMN avg_visual TYPE DECIMAL(6,2);
 ALTER TABLE corps_stats ALTER COLUMN total_score TYPE DECIMAL(7,2);
+ALTER TABLE corps_stats ADD COLUMN IF NOT EXISTS avg_music_analysis DECIMAL(6,2);
+ALTER TABLE corps_stats ADD COLUMN IF NOT EXISTS avg_color_guard DECIMAL(6,2);
+ALTER TABLE corps_stats ADD COLUMN IF NOT EXISTS avg_ge1 DECIMAL(6,2);
+ALTER TABLE corps_stats ADD COLUMN IF NOT EXISTS avg_ge2 DECIMAL(6,2);
+ALTER TABLE corps_stats ADD COLUMN IF NOT EXISTS avg_visual_proficiency DECIMAL(6,2);
+ALTER TABLE corps_stats ADD COLUMN IF NOT EXISTS avg_visual_analysis DECIMAL(6,2);
 
 CREATE INDEX IF NOT EXISTS idx_corps_stats_season ON corps_stats(season);
+
+-- Track one-time schema migrations
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    migration_name VARCHAR(255) PRIMARY KEY,
+    run_at TIMESTAMP DEFAULT NOW()
+);
 
 -- Remove stale corps stats from prior seasons
 DELETE FROM corps_stats WHERE season <> 2026;
 
 -- Seed 2026 corps stats — skipped if already present
-INSERT INTO corps_stats (corps_name, season, avg_brass, avg_percussion, avg_guard, avg_ge, avg_visual, total_score, competitions_count)
+INSERT INTO corps_stats (corps_name, season, avg_brass, avg_music_analysis, avg_percussion, avg_color_guard, avg_ge1, avg_ge2, avg_visual_proficiency, avg_visual_analysis, total_score, competitions_count)
 VALUES
-    ('Blue Devils',            2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Santa Clara Vanguard',   2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Bluecoats',              2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Carolina Crown',         2026, 0, 0, 0, 0, 0, 0, 0),
-    ('The Cavaliers',          2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Boston Crusaders',       2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Phantom Regiment',       2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Blue Stars',             2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Madison Scouts',         2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Blue Knights',           2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Crossmen',               2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Spirit of Atlanta',      2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Pacific Crest',          2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Music City',             2026, 0, 0, 0, 0, 0, 0, 0),
-    ('The Academy',            2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Troopers',               2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Colts',                  2026, 0, 0, 0, 0, 0, 0, 0),
-    ('Spartans',               2026, 0, 0, 0, 0, 0, 0, 0)
+    ('Blue Devils',            2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Santa Clara Vanguard',   2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Bluecoats',              2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Carolina Crown',         2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('The Cavaliers',          2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Boston Crusaders',       2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Phantom Regiment',       2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Blue Stars',             2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Madison Scouts',         2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Blue Knights',           2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Crossmen',               2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Spirit of Atlanta',      2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Pacific Crest',          2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Music City',             2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('The Academy',            2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Troopers',               2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Colts',                  2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Spartans',               2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 ON CONFLICT (corps_name, season) DO NOTHING;
-
--- Reset any placeholder scores seeded before the season started
-UPDATE corps_stats
-SET avg_brass=0, avg_percussion=0, avg_guard=0, avg_ge=0, avg_visual=0,
-    total_score=0, competitions_count=0
-WHERE season=2026 AND competitions_count=5 AND total_score > 50;
 
 -- League invite tokens
 CREATE TABLE IF NOT EXISTS league_invites (
@@ -161,14 +166,27 @@ CREATE TABLE IF NOT EXISTS competition_scores (
     id SERIAL PRIMARY KEY,
     competition_id INTEGER REFERENCES competitions(id) ON DELETE CASCADE,
     corps_name VARCHAR(255) NOT NULL,
-    brass DECIMAL(4,2),
-    percussion DECIMAL(4,2),
-    guard DECIMAL(4,2),
-    ge DECIMAL(4,2),
-    visual DECIMAL(4,2),
-    total_score DECIMAL(5,2),
+    brass DECIMAL(5,2),
+    music_analysis DECIMAL(5,2),
+    percussion DECIMAL(5,2),
+    color_guard DECIMAL(5,2),
+    ge1 DECIMAL(5,2),
+    ge2 DECIMAL(5,2),
+    visual_proficiency DECIMAL(5,2),
+    visual_analysis DECIMAL(5,2),
+    total_score DECIMAL(6,2),
     UNIQUE(competition_id, corps_name)
 );
+
+-- Ensure new caption columns exist on older DB instances
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS brass DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS music_analysis DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS percussion DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS color_guard DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS ge1 DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS ge2 DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS visual_proficiency DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS visual_analysis DECIMAL(5,2);
 
 CREATE INDEX IF NOT EXISTS idx_competition_scores_competition ON competition_scores(competition_id);
 CREATE INDEX IF NOT EXISTS idx_competition_scores_corps ON competition_scores(corps_name);

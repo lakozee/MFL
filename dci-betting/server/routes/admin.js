@@ -17,7 +17,8 @@ async function recalculateCorpsAverages() {
         WITH ranked AS (
           SELECT
             cs.corps_name,
-            cs.brass, cs.percussion, cs.guard, cs.ge, cs.visual,
+            cs.brass, cs.music_analysis, cs.percussion, cs.color_guard,
+            cs.ge1, cs.ge2, cs.visual_proficiency, cs.visual_analysis,
             c.competition_type,
             c.name AS competition_name,
             ROW_NUMBER() OVER (
@@ -54,25 +55,32 @@ async function recalculateCorpsAverages() {
         totals AS (
           SELECT
             corps_name,
-            ROUND(SUM(brass)::numeric, 2)      AS sum_brass,
-            ROUND(SUM(percussion)::numeric, 2) AS sum_percussion,
-            ROUND(SUM(guard)::numeric, 2)      AS sum_guard,
-            ROUND(SUM(ge)::numeric, 2)         AS sum_ge,
-            ROUND(SUM(visual)::numeric, 2)     AS sum_visual,
-            COUNT(*)                           AS qualifying_count
+            ROUND(SUM(brass)::numeric, 2)              AS sum_brass,
+            ROUND(SUM(music_analysis)::numeric, 2)     AS sum_music_analysis,
+            ROUND(SUM(percussion)::numeric, 2)         AS sum_percussion,
+            ROUND(SUM(color_guard)::numeric, 2)        AS sum_color_guard,
+            ROUND(SUM(ge1)::numeric, 2)                AS sum_ge1,
+            ROUND(SUM(ge2)::numeric, 2)                AS sum_ge2,
+            ROUND(SUM(visual_proficiency)::numeric, 2) AS sum_visual_proficiency,
+            ROUND(SUM(visual_analysis)::numeric, 2)    AS sum_visual_analysis,
+            COUNT(*)                                   AS qualifying_count
           FROM qualifying
           GROUP BY corps_name
         )
         UPDATE corps_stats cs_outer
         SET
-          avg_brass         = t.sum_brass,
-          avg_percussion    = t.sum_percussion,
-          avg_guard         = t.sum_guard,
-          avg_ge            = t.sum_ge,
-          avg_visual        = t.sum_visual,
-          total_score       = t.sum_brass + t.sum_percussion + t.sum_guard + t.sum_ge + t.sum_visual,
-          competitions_count = t.qualifying_count,
-          updated_at        = NOW()
+          avg_brass              = t.sum_brass,
+          avg_music_analysis     = t.sum_music_analysis,
+          avg_percussion         = t.sum_percussion,
+          avg_color_guard        = t.sum_color_guard,
+          avg_ge1                = t.sum_ge1,
+          avg_ge2                = t.sum_ge2,
+          avg_visual_proficiency = t.sum_visual_proficiency,
+          avg_visual_analysis    = t.sum_visual_analysis,
+          total_score            = t.sum_brass + t.sum_music_analysis + t.sum_percussion + t.sum_color_guard
+                                 + t.sum_ge1 + t.sum_ge2 + t.sum_visual_proficiency + t.sum_visual_analysis,
+          competitions_count     = t.qualifying_count,
+          updated_at             = NOW()
         FROM totals t
         WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
     `);
@@ -107,22 +115,37 @@ router.get('/users', async (req, res) => {
             LEFT JOIN LATERAL (
               SELECT COALESCE(SUM(
                 CASE dp.section_type
-                  WHEN 'Brass' THEN cs.avg_brass
-                  WHEN 'Percussion' THEN cs.avg_percussion
-                  WHEN 'Color Guard' THEN cs.avg_guard
-                  WHEN 'General Effect' THEN cs.avg_ge
-                  WHEN 'Visual Performance' THEN cs.avg_visual
+                  WHEN 'Brass'              THEN cs.avg_brass
+                  WHEN 'Music Analysis'     THEN cs.avg_music_analysis
+                  WHEN 'Percussion'         THEN cs.avg_percussion
+                  WHEN 'Color Guard'        THEN cs.avg_color_guard
+                  WHEN 'General Effect 1'   THEN cs.avg_ge1
+                  WHEN 'General Effect 2'   THEN cs.avg_ge2
+                  WHEN 'Visual Proficiency' THEN cs.avg_visual_proficiency
+                  WHEN 'Visual Analysis'    THEN cs.avg_visual_analysis
                   ELSE 0
                 END
               ), 0) as team_score
               FROM draft_picks dp
               LEFT JOIN corps_stats cs ON cs.season = 2026 AND cs.corps_name = CASE
-                WHEN dp.caption_id LIKE 'bd-%' THEN 'Blue Devils'
-                WHEN dp.caption_id LIKE 'scv-%' THEN 'Santa Clara Vanguard'
-                WHEN dp.caption_id LIKE 'bloo-%' THEN 'Bluecoats'
-                WHEN dp.caption_id LIKE 'crown-%' THEN 'Carolina Crown'
-                WHEN dp.caption_id LIKE 'cavs-%' THEN 'The Cavaliers'
-                WHEN dp.caption_id LIKE 'bac-%' THEN 'Boston Crusaders'
+                WHEN dp.caption_id LIKE 'bd-%'     THEN 'Blue Devils'
+                WHEN dp.caption_id LIKE 'scv-%'    THEN 'Santa Clara Vanguard'
+                WHEN dp.caption_id LIKE 'bloo-%'   THEN 'Bluecoats'
+                WHEN dp.caption_id LIKE 'crown-%'  THEN 'Carolina Crown'
+                WHEN dp.caption_id LIKE 'cavs-%'   THEN 'The Cavaliers'
+                WHEN dp.caption_id LIKE 'bac-%'    THEN 'Boston Crusaders'
+                WHEN dp.caption_id LIKE 'pr-%'     THEN 'Phantom Regiment'
+                WHEN dp.caption_id LIKE 'bs-%'     THEN 'Blue Stars'
+                WHEN dp.caption_id LIKE 'scouts-%' THEN 'Madison Scouts'
+                WHEN dp.caption_id LIKE 'bk-%'     THEN 'Blue Knights'
+                WHEN dp.caption_id LIKE 'cross-%'  THEN 'Crossmen'
+                WHEN dp.caption_id LIKE 'soa-%'    THEN 'Spirit of Atlanta'
+                WHEN dp.caption_id LIKE 'pc-%'     THEN 'Pacific Crest'
+                WHEN dp.caption_id LIKE 'mc-%'     THEN 'Music City'
+                WHEN dp.caption_id LIKE 'acad-%'   THEN 'The Academy'
+                WHEN dp.caption_id LIKE 'troop-%'  THEN 'Troopers'
+                WHEN dp.caption_id LIKE 'colts-%'  THEN 'Colts'
+                WHEN dp.caption_id LIKE 'sparts-%' THEN 'Spartans'
               END
               WHERE dp.user_id = u.id AND dp.league_id = l.id
             ) scores ON true
@@ -314,22 +337,37 @@ router.get('/leagues/:id/members', async (req, res) => {
             LEFT JOIN LATERAL (
               SELECT COALESCE(SUM(
                 CASE dp.section_type
-                  WHEN 'Brass' THEN cs.avg_brass
-                  WHEN 'Percussion' THEN cs.avg_percussion
-                  WHEN 'Color Guard' THEN cs.avg_guard
-                  WHEN 'General Effect' THEN cs.avg_ge
-                  WHEN 'Visual Performance' THEN cs.avg_visual
+                  WHEN 'Brass'              THEN cs.avg_brass
+                  WHEN 'Music Analysis'     THEN cs.avg_music_analysis
+                  WHEN 'Percussion'         THEN cs.avg_percussion
+                  WHEN 'Color Guard'        THEN cs.avg_color_guard
+                  WHEN 'General Effect 1'   THEN cs.avg_ge1
+                  WHEN 'General Effect 2'   THEN cs.avg_ge2
+                  WHEN 'Visual Proficiency' THEN cs.avg_visual_proficiency
+                  WHEN 'Visual Analysis'    THEN cs.avg_visual_analysis
                   ELSE 0
                 END
               ), 0) as team_score
               FROM draft_picks dp
               LEFT JOIN corps_stats cs ON cs.season = 2026 AND cs.corps_name = CASE
-                WHEN dp.caption_id LIKE 'bd-%' THEN 'Blue Devils'
-                WHEN dp.caption_id LIKE 'scv-%' THEN 'Santa Clara Vanguard'
-                WHEN dp.caption_id LIKE 'bloo-%' THEN 'Bluecoats'
-                WHEN dp.caption_id LIKE 'crown-%' THEN 'Carolina Crown'
-                WHEN dp.caption_id LIKE 'cavs-%' THEN 'The Cavaliers'
-                WHEN dp.caption_id LIKE 'bac-%' THEN 'Boston Crusaders'
+                WHEN dp.caption_id LIKE 'bd-%'     THEN 'Blue Devils'
+                WHEN dp.caption_id LIKE 'scv-%'    THEN 'Santa Clara Vanguard'
+                WHEN dp.caption_id LIKE 'bloo-%'   THEN 'Bluecoats'
+                WHEN dp.caption_id LIKE 'crown-%'  THEN 'Carolina Crown'
+                WHEN dp.caption_id LIKE 'cavs-%'   THEN 'The Cavaliers'
+                WHEN dp.caption_id LIKE 'bac-%'    THEN 'Boston Crusaders'
+                WHEN dp.caption_id LIKE 'pr-%'     THEN 'Phantom Regiment'
+                WHEN dp.caption_id LIKE 'bs-%'     THEN 'Blue Stars'
+                WHEN dp.caption_id LIKE 'scouts-%' THEN 'Madison Scouts'
+                WHEN dp.caption_id LIKE 'bk-%'     THEN 'Blue Knights'
+                WHEN dp.caption_id LIKE 'cross-%'  THEN 'Crossmen'
+                WHEN dp.caption_id LIKE 'soa-%'    THEN 'Spirit of Atlanta'
+                WHEN dp.caption_id LIKE 'pc-%'     THEN 'Pacific Crest'
+                WHEN dp.caption_id LIKE 'mc-%'     THEN 'Music City'
+                WHEN dp.caption_id LIKE 'acad-%'   THEN 'The Academy'
+                WHEN dp.caption_id LIKE 'troop-%'  THEN 'Troopers'
+                WHEN dp.caption_id LIKE 'colts-%'  THEN 'Colts'
+                WHEN dp.caption_id LIKE 'sparts-%' THEN 'Spartans'
               END
               WHERE dp.user_id = lm.user_id AND dp.league_id = lm.league_id
             ) scores ON true
@@ -379,27 +417,35 @@ router.get('/corps', async (req, res) => {
 // ─── PUT /api/admin/corps/:id ─────────────────────────────────────────────────
 router.put('/corps/:id', async (req, res) => {
     const { id } = req.params;
-    const { avg_brass, avg_percussion, avg_guard, avg_ge, avg_visual } = req.body;
+    const { avg_brass, avg_music_analysis, avg_percussion, avg_color_guard,
+            avg_ge1, avg_ge2, avg_visual_proficiency, avg_visual_analysis } = req.body;
 
     try {
         const total = (parseFloat(avg_brass) || 0) +
+                      (parseFloat(avg_music_analysis) || 0) +
                       (parseFloat(avg_percussion) || 0) +
-                      (parseFloat(avg_guard) || 0) +
-                      (parseFloat(avg_ge) || 0) +
-                      (parseFloat(avg_visual) || 0);
+                      (parseFloat(avg_color_guard) || 0) +
+                      (parseFloat(avg_ge1) || 0) +
+                      (parseFloat(avg_ge2) || 0) +
+                      (parseFloat(avg_visual_proficiency) || 0) +
+                      (parseFloat(avg_visual_analysis) || 0);
 
         const result = await db.query(`
             UPDATE corps_stats SET
-              avg_brass = $1,
-              avg_percussion = $2,
-              avg_guard = $3,
-              avg_ge = $4,
-              avg_visual = $5,
-              total_score = $6,
-              updated_at = NOW()
-            WHERE id = $7
+              avg_brass              = $1,
+              avg_music_analysis     = $2,
+              avg_percussion         = $3,
+              avg_color_guard        = $4,
+              avg_ge1                = $5,
+              avg_ge2                = $6,
+              avg_visual_proficiency = $7,
+              avg_visual_analysis    = $8,
+              total_score            = $9,
+              updated_at             = NOW()
+            WHERE id = $10
             RETURNING *
-        `, [avg_brass, avg_percussion, avg_guard, avg_ge, avg_visual, total, id]);
+        `, [avg_brass, avg_music_analysis, avg_percussion, avg_color_guard,
+            avg_ge1, avg_ge2, avg_visual_proficiency, avg_visual_analysis, total, id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Corps not found' });
@@ -532,16 +578,21 @@ router.post('/competitions/:id/scores', async (req, res) => {
 
         for (const s of scores) {
             const total = (parseFloat(s.brass) || 0) +
+                          (parseFloat(s.music_analysis) || 0) +
                           (parseFloat(s.percussion) || 0) +
-                          (parseFloat(s.guard) || 0) +
-                          (parseFloat(s.ge) || 0) +
-                          (parseFloat(s.visual) || 0);
+                          (parseFloat(s.color_guard) || 0) +
+                          (parseFloat(s.ge1) || 0) +
+                          (parseFloat(s.ge2) || 0) +
+                          (parseFloat(s.visual_proficiency) || 0) +
+                          (parseFloat(s.visual_analysis) || 0);
 
             await db.query(`
                 INSERT INTO competition_scores
-                  (competition_id, corps_name, brass, percussion, guard, ge, visual, total_score)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `, [id, s.corps_name, s.brass, s.percussion, s.guard, s.ge, s.visual, total]);
+                  (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                   ge1, ge2, visual_proficiency, visual_analysis, total_score)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            `, [id, s.corps_name, s.brass, s.music_analysis, s.percussion, s.color_guard,
+                s.ge1, s.ge2, s.visual_proficiency, s.visual_analysis, total]);
         }
 
         await recalculateCorpsAverages();
@@ -560,24 +611,31 @@ async function upsertCompetitionScores(competitionId, scores) {
     for (const s of scores) {
         const total = s.total_score || (
             (parseFloat(s.brass) || 0) +
+            (parseFloat(s.music_analysis) || 0) +
             (parseFloat(s.percussion) || 0) +
-            (parseFloat(s.guard) || 0) +
-            (parseFloat(s.ge) || 0) +
-            (parseFloat(s.visual) || 0)
+            (parseFloat(s.color_guard) || 0) +
+            (parseFloat(s.ge1) || 0) +
+            (parseFloat(s.ge2) || 0) +
+            (parseFloat(s.visual_proficiency) || 0) +
+            (parseFloat(s.visual_analysis) || 0)
         );
         await db.query(
             `INSERT INTO competition_scores
-               (competition_id, corps_name, brass, percussion, guard, ge, visual, total_score)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+               (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                ge1, ge2, visual_proficiency, visual_analysis, total_score)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
              ON CONFLICT (competition_id, corps_name) DO UPDATE SET
-               brass=$3, percussion=$4, guard=$5, ge=$6, visual=$7, total_score=$8`,
-            [competitionId, s.corps_name, s.brass, s.percussion, s.guard, s.ge, s.visual, total]
+               brass=$3, music_analysis=$4, percussion=$5, color_guard=$6,
+               ge1=$7, ge2=$8, visual_proficiency=$9, visual_analysis=$10, total_score=$11`,
+            [competitionId, s.corps_name, s.brass, s.music_analysis, s.percussion, s.color_guard,
+             s.ge1, s.ge2, s.visual_proficiency, s.visual_analysis, total]
         );
 
         // Upsert corps_stats row so new corps discovered via scrape are tracked
         await db.query(
-            `INSERT INTO corps_stats (corps_name, season, avg_brass, avg_percussion, avg_guard, avg_ge, avg_visual, total_score, competitions_count)
-             VALUES ($1, 2026, 0, 0, 0, 0, 0, 0, 0)
+            `INSERT INTO corps_stats (corps_name, season, avg_brass, avg_music_analysis, avg_percussion,
+               avg_color_guard, avg_ge1, avg_ge2, avg_visual_proficiency, avg_visual_analysis, total_score, competitions_count)
+             VALUES ($1, 2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
              ON CONFLICT (corps_name, season) DO NOTHING`,
             [s.corps_name]
         );

@@ -533,39 +533,170 @@ function stopTurnTimer(leagueId, draftTimers) {
 async function autoPickCaption(io, db, draftTimers, leagueId, turnIndex, draftOrder, playerCount) {
     const userId = draftOrder[turnIndex % draftOrder.length];
 
-    // TODO: expand to 8 captions per MFL spec
-    // Hardcoded caption list matching the frontend captions in app.js
+    // Caption list matching the frontend captions in app.js (18 corps × 8 captions = 144)
     const ALL_CAPTIONS = [
-        { id: 'bd-brass',        corps: 'Blue Devils',           section: 'Brass',              score: 19.8 },
-        { id: 'bd-percussion',   corps: 'Blue Devils',           section: 'Percussion',          score: 19.7 },
-        { id: 'bd-guard',        corps: 'Blue Devils',           section: 'Color Guard',         score: 19.6 },
-        { id: 'bd-ge',           corps: 'Blue Devils',           section: 'General Effect',      score: 19.9 },
-        { id: 'bd-visual',       corps: 'Blue Devils',           section: 'Visual Performance',  score: 19.7 },
-        { id: 'scv-brass',       corps: 'Santa Clara Vanguard',  section: 'Brass',              score: 19.6 },
-        { id: 'scv-percussion',  corps: 'Santa Clara Vanguard',  section: 'Percussion',          score: 19.8 },
-        { id: 'scv-guard',       corps: 'Santa Clara Vanguard',  section: 'Color Guard',         score: 19.5 },
-        { id: 'scv-ge',          corps: 'Santa Clara Vanguard',  section: 'General Effect',      score: 19.7 },
-        { id: 'scv-visual',      corps: 'Santa Clara Vanguard',  section: 'Visual Performance',  score: 19.6 },
-        { id: 'bloo-brass',      corps: 'Bluecoats',             section: 'Brass',              score: 19.5 },
-        { id: 'bloo-percussion', corps: 'Bluecoats',             section: 'Percussion',          score: 19.6 },
-        { id: 'bloo-guard',      corps: 'Bluecoats',             section: 'Color Guard',         score: 19.8 },
-        { id: 'bloo-ge',         corps: 'Bluecoats',             section: 'General Effect',      score: 19.6 },
-        { id: 'bloo-visual',     corps: 'Bluecoats',             section: 'Visual Performance',  score: 19.5 },
-        { id: 'crown-brass',     corps: 'Carolina Crown',        section: 'Brass',              score: 19.7 },
-        { id: 'crown-percussion',corps: 'Carolina Crown',        section: 'Percussion',          score: 19.5 },
-        { id: 'crown-guard',     corps: 'Carolina Crown',        section: 'Color Guard',         score: 19.4 },
-        { id: 'crown-ge',        corps: 'Carolina Crown',        section: 'General Effect',      score: 19.6 },
-        { id: 'crown-visual',    corps: 'Carolina Crown',        section: 'Visual Performance',  score: 19.7 },
-        { id: 'cavs-brass',      corps: 'The Cavaliers',         section: 'Brass',              score: 19.4 },
-        { id: 'cavs-percussion', corps: 'The Cavaliers',         section: 'Percussion',          score: 19.4 },
-        { id: 'cavs-guard',      corps: 'The Cavaliers',         section: 'Color Guard',         score: 19.3 },
-        { id: 'cavs-ge',         corps: 'The Cavaliers',         section: 'General Effect',      score: 19.5 },
-        { id: 'cavs-visual',     corps: 'The Cavaliers',         section: 'Visual Performance',  score: 19.6 },
-        { id: 'bac-brass',       corps: 'Boston Crusaders',      section: 'Brass',              score: 19.3 },
-        { id: 'bac-percussion',  corps: 'Boston Crusaders',      section: 'Percussion',          score: 19.7 },
-        { id: 'bac-guard',       corps: 'Boston Crusaders',      section: 'Color Guard',         score: 19.2 },
-        { id: 'bac-ge',          corps: 'Boston Crusaders',      section: 'General Effect',      score: 19.4 },
-        { id: 'bac-visual',      corps: 'Boston Crusaders',      section: 'Visual Performance',  score: 19.3 },
+        // Blue Devils
+        { id: 'bd-brass',               corps: 'Blue Devils',          section: 'Brass',              score: 0 },
+        { id: 'bd-music-analysis',      corps: 'Blue Devils',          section: 'Music Analysis',     score: 0 },
+        { id: 'bd-percussion',          corps: 'Blue Devils',          section: 'Percussion',         score: 0 },
+        { id: 'bd-color-guard',         corps: 'Blue Devils',          section: 'Color Guard',        score: 0 },
+        { id: 'bd-ge1',                 corps: 'Blue Devils',          section: 'General Effect 1',   score: 0 },
+        { id: 'bd-ge2',                 corps: 'Blue Devils',          section: 'General Effect 2',   score: 0 },
+        { id: 'bd-visual-proficiency',  corps: 'Blue Devils',          section: 'Visual Proficiency', score: 0 },
+        { id: 'bd-visual-analysis',     corps: 'Blue Devils',          section: 'Visual Analysis',    score: 0 },
+        // Santa Clara Vanguard
+        { id: 'scv-brass',              corps: 'Santa Clara Vanguard', section: 'Brass',              score: 0 },
+        { id: 'scv-music-analysis',     corps: 'Santa Clara Vanguard', section: 'Music Analysis',     score: 0 },
+        { id: 'scv-percussion',         corps: 'Santa Clara Vanguard', section: 'Percussion',         score: 0 },
+        { id: 'scv-color-guard',        corps: 'Santa Clara Vanguard', section: 'Color Guard',        score: 0 },
+        { id: 'scv-ge1',                corps: 'Santa Clara Vanguard', section: 'General Effect 1',   score: 0 },
+        { id: 'scv-ge2',                corps: 'Santa Clara Vanguard', section: 'General Effect 2',   score: 0 },
+        { id: 'scv-visual-proficiency', corps: 'Santa Clara Vanguard', section: 'Visual Proficiency', score: 0 },
+        { id: 'scv-visual-analysis',    corps: 'Santa Clara Vanguard', section: 'Visual Analysis',    score: 0 },
+        // Bluecoats
+        { id: 'bloo-brass',               corps: 'Bluecoats', section: 'Brass',              score: 0 },
+        { id: 'bloo-music-analysis',      corps: 'Bluecoats', section: 'Music Analysis',     score: 0 },
+        { id: 'bloo-percussion',          corps: 'Bluecoats', section: 'Percussion',         score: 0 },
+        { id: 'bloo-color-guard',         corps: 'Bluecoats', section: 'Color Guard',        score: 0 },
+        { id: 'bloo-ge1',                 corps: 'Bluecoats', section: 'General Effect 1',   score: 0 },
+        { id: 'bloo-ge2',                 corps: 'Bluecoats', section: 'General Effect 2',   score: 0 },
+        { id: 'bloo-visual-proficiency',  corps: 'Bluecoats', section: 'Visual Proficiency', score: 0 },
+        { id: 'bloo-visual-analysis',     corps: 'Bluecoats', section: 'Visual Analysis',    score: 0 },
+        // Carolina Crown
+        { id: 'crown-brass',               corps: 'Carolina Crown', section: 'Brass',              score: 0 },
+        { id: 'crown-music-analysis',      corps: 'Carolina Crown', section: 'Music Analysis',     score: 0 },
+        { id: 'crown-percussion',          corps: 'Carolina Crown', section: 'Percussion',         score: 0 },
+        { id: 'crown-color-guard',         corps: 'Carolina Crown', section: 'Color Guard',        score: 0 },
+        { id: 'crown-ge1',                 corps: 'Carolina Crown', section: 'General Effect 1',   score: 0 },
+        { id: 'crown-ge2',                 corps: 'Carolina Crown', section: 'General Effect 2',   score: 0 },
+        { id: 'crown-visual-proficiency',  corps: 'Carolina Crown', section: 'Visual Proficiency', score: 0 },
+        { id: 'crown-visual-analysis',     corps: 'Carolina Crown', section: 'Visual Analysis',    score: 0 },
+        // The Cavaliers
+        { id: 'cavs-brass',               corps: 'The Cavaliers', section: 'Brass',              score: 0 },
+        { id: 'cavs-music-analysis',      corps: 'The Cavaliers', section: 'Music Analysis',     score: 0 },
+        { id: 'cavs-percussion',          corps: 'The Cavaliers', section: 'Percussion',         score: 0 },
+        { id: 'cavs-color-guard',         corps: 'The Cavaliers', section: 'Color Guard',        score: 0 },
+        { id: 'cavs-ge1',                 corps: 'The Cavaliers', section: 'General Effect 1',   score: 0 },
+        { id: 'cavs-ge2',                 corps: 'The Cavaliers', section: 'General Effect 2',   score: 0 },
+        { id: 'cavs-visual-proficiency',  corps: 'The Cavaliers', section: 'Visual Proficiency', score: 0 },
+        { id: 'cavs-visual-analysis',     corps: 'The Cavaliers', section: 'Visual Analysis',    score: 0 },
+        // Boston Crusaders
+        { id: 'bac-brass',               corps: 'Boston Crusaders', section: 'Brass',              score: 0 },
+        { id: 'bac-music-analysis',      corps: 'Boston Crusaders', section: 'Music Analysis',     score: 0 },
+        { id: 'bac-percussion',          corps: 'Boston Crusaders', section: 'Percussion',         score: 0 },
+        { id: 'bac-color-guard',         corps: 'Boston Crusaders', section: 'Color Guard',        score: 0 },
+        { id: 'bac-ge1',                 corps: 'Boston Crusaders', section: 'General Effect 1',   score: 0 },
+        { id: 'bac-ge2',                 corps: 'Boston Crusaders', section: 'General Effect 2',   score: 0 },
+        { id: 'bac-visual-proficiency',  corps: 'Boston Crusaders', section: 'Visual Proficiency', score: 0 },
+        { id: 'bac-visual-analysis',     corps: 'Boston Crusaders', section: 'Visual Analysis',    score: 0 },
+        // Phantom Regiment
+        { id: 'pr-brass',               corps: 'Phantom Regiment', section: 'Brass',              score: 0 },
+        { id: 'pr-music-analysis',      corps: 'Phantom Regiment', section: 'Music Analysis',     score: 0 },
+        { id: 'pr-percussion',          corps: 'Phantom Regiment', section: 'Percussion',         score: 0 },
+        { id: 'pr-color-guard',         corps: 'Phantom Regiment', section: 'Color Guard',        score: 0 },
+        { id: 'pr-ge1',                 corps: 'Phantom Regiment', section: 'General Effect 1',   score: 0 },
+        { id: 'pr-ge2',                 corps: 'Phantom Regiment', section: 'General Effect 2',   score: 0 },
+        { id: 'pr-visual-proficiency',  corps: 'Phantom Regiment', section: 'Visual Proficiency', score: 0 },
+        { id: 'pr-visual-analysis',     corps: 'Phantom Regiment', section: 'Visual Analysis',    score: 0 },
+        // Blue Stars
+        { id: 'bs-brass',               corps: 'Blue Stars', section: 'Brass',              score: 0 },
+        { id: 'bs-music-analysis',      corps: 'Blue Stars', section: 'Music Analysis',     score: 0 },
+        { id: 'bs-percussion',          corps: 'Blue Stars', section: 'Percussion',         score: 0 },
+        { id: 'bs-color-guard',         corps: 'Blue Stars', section: 'Color Guard',        score: 0 },
+        { id: 'bs-ge1',                 corps: 'Blue Stars', section: 'General Effect 1',   score: 0 },
+        { id: 'bs-ge2',                 corps: 'Blue Stars', section: 'General Effect 2',   score: 0 },
+        { id: 'bs-visual-proficiency',  corps: 'Blue Stars', section: 'Visual Proficiency', score: 0 },
+        { id: 'bs-visual-analysis',     corps: 'Blue Stars', section: 'Visual Analysis',    score: 0 },
+        // Madison Scouts
+        { id: 'scouts-brass',               corps: 'Madison Scouts', section: 'Brass',              score: 0 },
+        { id: 'scouts-music-analysis',      corps: 'Madison Scouts', section: 'Music Analysis',     score: 0 },
+        { id: 'scouts-percussion',          corps: 'Madison Scouts', section: 'Percussion',         score: 0 },
+        { id: 'scouts-color-guard',         corps: 'Madison Scouts', section: 'Color Guard',        score: 0 },
+        { id: 'scouts-ge1',                 corps: 'Madison Scouts', section: 'General Effect 1',   score: 0 },
+        { id: 'scouts-ge2',                 corps: 'Madison Scouts', section: 'General Effect 2',   score: 0 },
+        { id: 'scouts-visual-proficiency',  corps: 'Madison Scouts', section: 'Visual Proficiency', score: 0 },
+        { id: 'scouts-visual-analysis',     corps: 'Madison Scouts', section: 'Visual Analysis',    score: 0 },
+        // Blue Knights
+        { id: 'bk-brass',               corps: 'Blue Knights', section: 'Brass',              score: 0 },
+        { id: 'bk-music-analysis',      corps: 'Blue Knights', section: 'Music Analysis',     score: 0 },
+        { id: 'bk-percussion',          corps: 'Blue Knights', section: 'Percussion',         score: 0 },
+        { id: 'bk-color-guard',         corps: 'Blue Knights', section: 'Color Guard',        score: 0 },
+        { id: 'bk-ge1',                 corps: 'Blue Knights', section: 'General Effect 1',   score: 0 },
+        { id: 'bk-ge2',                 corps: 'Blue Knights', section: 'General Effect 2',   score: 0 },
+        { id: 'bk-visual-proficiency',  corps: 'Blue Knights', section: 'Visual Proficiency', score: 0 },
+        { id: 'bk-visual-analysis',     corps: 'Blue Knights', section: 'Visual Analysis',    score: 0 },
+        // Crossmen
+        { id: 'cross-brass',               corps: 'Crossmen', section: 'Brass',              score: 0 },
+        { id: 'cross-music-analysis',      corps: 'Crossmen', section: 'Music Analysis',     score: 0 },
+        { id: 'cross-percussion',          corps: 'Crossmen', section: 'Percussion',         score: 0 },
+        { id: 'cross-color-guard',         corps: 'Crossmen', section: 'Color Guard',        score: 0 },
+        { id: 'cross-ge1',                 corps: 'Crossmen', section: 'General Effect 1',   score: 0 },
+        { id: 'cross-ge2',                 corps: 'Crossmen', section: 'General Effect 2',   score: 0 },
+        { id: 'cross-visual-proficiency',  corps: 'Crossmen', section: 'Visual Proficiency', score: 0 },
+        { id: 'cross-visual-analysis',     corps: 'Crossmen', section: 'Visual Analysis',    score: 0 },
+        // Spirit of Atlanta
+        { id: 'soa-brass',               corps: 'Spirit of Atlanta', section: 'Brass',              score: 0 },
+        { id: 'soa-music-analysis',      corps: 'Spirit of Atlanta', section: 'Music Analysis',     score: 0 },
+        { id: 'soa-percussion',          corps: 'Spirit of Atlanta', section: 'Percussion',         score: 0 },
+        { id: 'soa-color-guard',         corps: 'Spirit of Atlanta', section: 'Color Guard',        score: 0 },
+        { id: 'soa-ge1',                 corps: 'Spirit of Atlanta', section: 'General Effect 1',   score: 0 },
+        { id: 'soa-ge2',                 corps: 'Spirit of Atlanta', section: 'General Effect 2',   score: 0 },
+        { id: 'soa-visual-proficiency',  corps: 'Spirit of Atlanta', section: 'Visual Proficiency', score: 0 },
+        { id: 'soa-visual-analysis',     corps: 'Spirit of Atlanta', section: 'Visual Analysis',    score: 0 },
+        // Pacific Crest
+        { id: 'pc-brass',               corps: 'Pacific Crest', section: 'Brass',              score: 0 },
+        { id: 'pc-music-analysis',      corps: 'Pacific Crest', section: 'Music Analysis',     score: 0 },
+        { id: 'pc-percussion',          corps: 'Pacific Crest', section: 'Percussion',         score: 0 },
+        { id: 'pc-color-guard',         corps: 'Pacific Crest', section: 'Color Guard',        score: 0 },
+        { id: 'pc-ge1',                 corps: 'Pacific Crest', section: 'General Effect 1',   score: 0 },
+        { id: 'pc-ge2',                 corps: 'Pacific Crest', section: 'General Effect 2',   score: 0 },
+        { id: 'pc-visual-proficiency',  corps: 'Pacific Crest', section: 'Visual Proficiency', score: 0 },
+        { id: 'pc-visual-analysis',     corps: 'Pacific Crest', section: 'Visual Analysis',    score: 0 },
+        // Music City
+        { id: 'mc-brass',               corps: 'Music City', section: 'Brass',              score: 0 },
+        { id: 'mc-music-analysis',      corps: 'Music City', section: 'Music Analysis',     score: 0 },
+        { id: 'mc-percussion',          corps: 'Music City', section: 'Percussion',         score: 0 },
+        { id: 'mc-color-guard',         corps: 'Music City', section: 'Color Guard',        score: 0 },
+        { id: 'mc-ge1',                 corps: 'Music City', section: 'General Effect 1',   score: 0 },
+        { id: 'mc-ge2',                 corps: 'Music City', section: 'General Effect 2',   score: 0 },
+        { id: 'mc-visual-proficiency',  corps: 'Music City', section: 'Visual Proficiency', score: 0 },
+        { id: 'mc-visual-analysis',     corps: 'Music City', section: 'Visual Analysis',    score: 0 },
+        // The Academy
+        { id: 'acad-brass',               corps: 'The Academy', section: 'Brass',              score: 0 },
+        { id: 'acad-music-analysis',      corps: 'The Academy', section: 'Music Analysis',     score: 0 },
+        { id: 'acad-percussion',          corps: 'The Academy', section: 'Percussion',         score: 0 },
+        { id: 'acad-color-guard',         corps: 'The Academy', section: 'Color Guard',        score: 0 },
+        { id: 'acad-ge1',                 corps: 'The Academy', section: 'General Effect 1',   score: 0 },
+        { id: 'acad-ge2',                 corps: 'The Academy', section: 'General Effect 2',   score: 0 },
+        { id: 'acad-visual-proficiency',  corps: 'The Academy', section: 'Visual Proficiency', score: 0 },
+        { id: 'acad-visual-analysis',     corps: 'The Academy', section: 'Visual Analysis',    score: 0 },
+        // Troopers
+        { id: 'troop-brass',               corps: 'Troopers', section: 'Brass',              score: 0 },
+        { id: 'troop-music-analysis',      corps: 'Troopers', section: 'Music Analysis',     score: 0 },
+        { id: 'troop-percussion',          corps: 'Troopers', section: 'Percussion',         score: 0 },
+        { id: 'troop-color-guard',         corps: 'Troopers', section: 'Color Guard',        score: 0 },
+        { id: 'troop-ge1',                 corps: 'Troopers', section: 'General Effect 1',   score: 0 },
+        { id: 'troop-ge2',                 corps: 'Troopers', section: 'General Effect 2',   score: 0 },
+        { id: 'troop-visual-proficiency',  corps: 'Troopers', section: 'Visual Proficiency', score: 0 },
+        { id: 'troop-visual-analysis',     corps: 'Troopers', section: 'Visual Analysis',    score: 0 },
+        // Colts
+        { id: 'colts-brass',               corps: 'Colts', section: 'Brass',              score: 0 },
+        { id: 'colts-music-analysis',      corps: 'Colts', section: 'Music Analysis',     score: 0 },
+        { id: 'colts-percussion',          corps: 'Colts', section: 'Percussion',         score: 0 },
+        { id: 'colts-color-guard',         corps: 'Colts', section: 'Color Guard',        score: 0 },
+        { id: 'colts-ge1',                 corps: 'Colts', section: 'General Effect 1',   score: 0 },
+        { id: 'colts-ge2',                 corps: 'Colts', section: 'General Effect 2',   score: 0 },
+        { id: 'colts-visual-proficiency',  corps: 'Colts', section: 'Visual Proficiency', score: 0 },
+        { id: 'colts-visual-analysis',     corps: 'Colts', section: 'Visual Analysis',    score: 0 },
+        // Spartans
+        { id: 'sparts-brass',               corps: 'Spartans', section: 'Brass',              score: 0 },
+        { id: 'sparts-music-analysis',      corps: 'Spartans', section: 'Music Analysis',     score: 0 },
+        { id: 'sparts-percussion',          corps: 'Spartans', section: 'Percussion',         score: 0 },
+        { id: 'sparts-color-guard',         corps: 'Spartans', section: 'Color Guard',        score: 0 },
+        { id: 'sparts-ge1',                 corps: 'Spartans', section: 'General Effect 1',   score: 0 },
+        { id: 'sparts-ge2',                 corps: 'Spartans', section: 'General Effect 2',   score: 0 },
+        { id: 'sparts-visual-proficiency',  corps: 'Spartans', section: 'Visual Proficiency', score: 0 },
+        { id: 'sparts-visual-analysis',     corps: 'Spartans', section: 'Visual Analysis',    score: 0 },
     ];
 
     // Get already-drafted captions
@@ -608,8 +739,7 @@ async function autoPickCaption(io, db, draftTimers, leagueId, turnIndex, draftOr
         autoPickd: true
     });
 
-    // TODO: expand to playerCount * 8 per MFL spec
-    const totalPicks = draftOrder.length * 5;
+    const totalPicks = draftOrder.length * 8;
     const newTurn = turnIndex + 1;
 
     if (newTurn < totalPicks) {
@@ -622,11 +752,14 @@ async function autoPickCaption(io, db, draftTimers, leagueId, turnIndex, draftOr
 }
 
 function deriveSectionFromCaptionId(captionId) {
-    if (captionId.includes('brass'))      return 'Brass';
-    if (captionId.includes('percussion')) return 'Percussion';
-    if (captionId.includes('guard'))      return 'Color Guard';
-    if (captionId.includes('ge'))         return 'General Effect';
-    if (captionId.includes('visual'))     return 'Visual Performance';
+    if (captionId.includes('music-analysis'))     return 'Music Analysis';
+    if (captionId.includes('color-guard'))        return 'Color Guard';
+    if (captionId.includes('ge1'))                return 'General Effect 1';
+    if (captionId.includes('ge2'))                return 'General Effect 2';
+    if (captionId.includes('visual-proficiency')) return 'Visual Proficiency';
+    if (captionId.includes('visual-analysis'))    return 'Visual Analysis';
+    if (captionId.includes('brass'))              return 'Brass';
+    if (captionId.includes('percussion'))         return 'Percussion';
     return 'Unknown';
 }
 

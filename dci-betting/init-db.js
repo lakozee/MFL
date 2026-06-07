@@ -47,6 +47,25 @@ async function initDb() {
             }
         }
 
+        // One-time migration: clear all leagues when moving to v2 caption system
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'clear_leagues_v2_captions' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                await client.query('DELETE FROM draft_picks');
+                await client.query('DELETE FROM draft_sessions');
+                await client.query('DELETE FROM league_members');
+                await client.query('DELETE FROM leagues');
+                await client.query(
+                    "INSERT INTO schema_migrations (migration_name) VALUES ('clear_leagues_v2_captions')"
+                );
+                console.log('[init-db] Migration: cleared all leagues for v2 caption system');
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning:', err.message.split('\n')[0]);
+        }
+
         client.release();
 
         console.log(`[init-db] Schema applied — ${warnings} warning(s).`);

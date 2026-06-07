@@ -49,16 +49,19 @@
                             <th>Corps</th>
                             <th>Total</th>
                             <th>Brass</th>
+                            <th>Music Analysis</th>
                             <th>Percussion</th>
-                            <th>Guard</th>
-                            <th>GE</th>
-                            <th>Visual</th>
+                            <th>Color Guard</th>
+                            <th>GE 1</th>
+                            <th>GE 2</th>
+                            <th>Visual Proficiency</th>
+                            <th>Visual Analysis</th>
                             <th title="Number of qualifying shows counted toward score">Qualifying Shows</th>
                         </tr>
                     </thead>
                     <tbody id="scoresTableBody">
                         <tr>
-                            <td colspan="8" class="loading-cell">Loading scores...</td>
+                            <td colspan="11" class="loading-cell">Loading scores...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -80,7 +83,7 @@
                 renderTable();
             } catch (error) {
                 document.getElementById('scoresTableBody').innerHTML =
-                    `<tr><td colspan="8" class="error-cell">Failed to load scores: ${error.message}</td></tr>`;
+                    `<tr><td colspan="11" class="error-cell">Failed to load scores: ${error.message}</td></tr>`;
             }
         }
 
@@ -88,7 +91,7 @@
             const tbody = document.getElementById('scoresTableBody');
 
             if (corpsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">No data available</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-cell">No data available</td></tr>';
                 return;
             }
 
@@ -97,10 +100,13 @@
           <td class="corps-name">${corps.corps_name}</td>
           <td class="score-total">${corps.total_score}</td>
           <td>${corps.avg_brass}</td>
+          <td>${corps.avg_music_analysis}</td>
           <td>${corps.avg_percussion}</td>
-          <td>${corps.avg_guard}</td>
-          <td>${corps.avg_ge}</td>
-          <td>${corps.avg_visual}</td>
+          <td>${corps.avg_color_guard}</td>
+          <td>${corps.avg_ge1}</td>
+          <td>${corps.avg_ge2}</td>
+          <td>${corps.avg_visual_proficiency}</td>
+          <td>${corps.avg_visual_analysis}</td>
           <td>${corps.competitions_count}</td>
         </tr>
       `).join('');
