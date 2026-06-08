@@ -66,6 +66,30 @@ async function initDb() {
             console.warn('[init-db] Migration warning:', err.message.split('\n')[0]);
         }
 
+        // One-time migration: zero out all corps stats for clean launch
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'zero_corps_stats_launch' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                await client.query(`
+                    UPDATE corps_stats SET
+                        avg_brass = 0, avg_music_analysis = 0, avg_percussion = 0,
+                        avg_color_guard = 0, avg_ge1 = 0, avg_ge2 = 0,
+                        avg_visual_proficiency = 0, avg_visual_analysis = 0,
+                        total_score = 0, competitions_count = 0
+                    WHERE season = 2026
+                `);
+                await client.query('DELETE FROM competition_scores');
+                await client.query(
+                    "INSERT INTO schema_migrations (migration_name) VALUES ('zero_corps_stats_launch')"
+                );
+                console.log('[init-db] Migration: zeroed all corps stats for launch');
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning:', err.message.split('\n')[0]);
+        }
+
         client.release();
 
         console.log(`[init-db] Schema applied — ${warnings} warning(s).`);

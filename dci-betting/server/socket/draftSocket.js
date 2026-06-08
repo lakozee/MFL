@@ -270,8 +270,7 @@ function setupDraftSocket(server, db) {
                     pickNumber: turnIndex
                 });
 
-                // TODO: expand total picks to playerCount * 8 per MFL spec (8 scoreable captions)
-                const totalPicks = draftOrder.length * 5; // 5 rounds currently
+                const totalPicks = draftOrder.length * 8;
                 const newTurn = turnIndex + 1;
 
                 if (newTurn < totalPicks) {

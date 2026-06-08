@@ -29,6 +29,16 @@ router.post('/pick', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Caption already drafted' });
         }
 
+        // Check player doesn't already have a pick for this section
+        const sectionCheck = await db.query(
+            'SELECT 1 FROM draft_picks WHERE league_id = $1 AND user_id = $2 AND section_type = $3',
+            [leagueId, userId, sectionType]
+        );
+
+        if (sectionCheck.rows.length > 0) {
+            return res.status(400).json({ error: `You already have a pick for ${sectionType}` });
+        }
+
         // Record pick
         const result = await db.query(
             'INSERT INTO draft_picks (league_id, user_id, caption_id, section_type, pick_number) VALUES ($1, $2, $3, $4, $5) RETURNING *',

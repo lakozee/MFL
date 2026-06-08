@@ -286,11 +286,14 @@ function calculateTeamScore(team) {
 
 function getSectionKey(section) {
     const map = {
-        'Brass': 'brass',
-        'Percussion': 'percussion',
-        'Color Guard': 'colorGuard',
-        'General Effect': 'generalEffect',
-        'Visual Performance': 'visualPerformance'
+        'Brass':              'brass',
+        'Music Analysis':     'musicAnalysis',
+        'Percussion':         'percussion',
+        'Color Guard':        'colorGuard',
+        'General Effect 1':   'ge1',
+        'General Effect 2':   'ge2',
+        'Visual Proficiency': 'visualProficiency',
+        'Visual Analysis':    'visualAnalysis'
     };
     return map[section];
 }
@@ -493,10 +496,13 @@ function generateTeams(playerCount) {
             name: i === 0 ? 'My Team' : teamNames[i],
             roster: {
                 brass: null,
+                musicAnalysis: null,
                 percussion: null,
                 colorGuard: null,
-                generalEffect: null,
-                visualPerformance: null
+                ge1: null,
+                ge2: null,
+                visualProficiency: null,
+                visualAnalysis: null
             }
         });
     }
@@ -505,8 +511,7 @@ function generateTeams(playerCount) {
 function generateDraftOrder(playerCount) {
     state.draftOrder = [];
 
-    // 5 rounds (one for each caption type)
-    for (let round = 0; round < 5; round++) {
+    for (let round = 0; round < 8; round++) {
         if (round % 2 === 0) {
             // Forward order (1, 2, 3, 4, 5, 6)
             for (let i = 0; i < playerCount; i++) {
@@ -609,11 +614,14 @@ function autoDraft(teamId) {
 
     // Find available captions for that slot type
     const sectionTypes = {
-        'brass': 'Brass',
-        'percussion': 'Percussion',
-        'colorGuard': 'Color Guard',
-        'generalEffect': 'General Effect',
-        'visualPerformance': 'Visual Performance'
+        'brass':            'Brass',
+        'musicAnalysis':    'Music Analysis',
+        'percussion':       'Percussion',
+        'colorGuard':       'Color Guard',
+        'ge1':              'General Effect 1',
+        'ge2':              'General Effect 2',
+        'visualProficiency':'Visual Proficiency',
+        'visualAnalysis':   'Visual Analysis'
     };
     const sectionType = sectionTypes[emptySlot];
 
@@ -687,11 +695,14 @@ function renderDraftView() {
     // Get section color
     const getSectionColor = (section) => {
         const colors = {
-            'Brass': '#f59e0b',
-            'Percussion': '#10b981',
-            'Color Guard': '#8b5cf6',
-            'General Effect': '#06b6d4',
-            'Visual Performance': '#ec4899'
+            'Brass':              '#f59e0b',
+            'Music Analysis':     '#f97316',
+            'Percussion':         '#10b981',
+            'Color Guard':        '#8b5cf6',
+            'General Effect 1':   '#06b6d4',
+            'General Effect 2':   '#0284c7',
+            'Visual Proficiency': '#ec4899',
+            'Visual Analysis':    '#a855f7'
         };
         return colors[section] || '#64748b';
     };
@@ -723,11 +734,14 @@ function renderMyTeam() {
     }
 
     const sections = [
-        { key: 'brass', name: 'Brass', icon: '🎺' },
-        { key: 'percussion', name: 'Percussion', icon: '🥁' },
-        { key: 'colorGuard', name: 'Color Guard', icon: '🎭' },
-        { key: 'generalEffect', name: 'General Effect', icon: '✨' },
-        { key: 'visualPerformance', name: 'Visual Performance', icon: '💫' }
+        { key: 'brass',            name: 'Brass',              icon: '🎺' },
+        { key: 'musicAnalysis',    name: 'Music Analysis',     icon: '🎵' },
+        { key: 'percussion',       name: 'Percussion',         icon: '🥁' },
+        { key: 'colorGuard',       name: 'Color Guard',        icon: '🎭' },
+        { key: 'ge1',              name: 'General Effect 1',   icon: '✨' },
+        { key: 'ge2',              name: 'General Effect 2',   icon: '✨' },
+        { key: 'visualProficiency',name: 'Visual Proficiency', icon: '💫' },
+        { key: 'visualAnalysis',   name: 'Visual Analysis',    icon: '👁' }
     ];
 
     if (elements.myRoster) {
@@ -975,10 +989,13 @@ async function loadMyLeagueData() {
                     isReal: true,
                     roster: {
                         brass: null,
+                        musicAnalysis: null,
                         percussion: null,
                         colorGuard: null,
-                        generalEffect: null,
-                        visualPerformance: null
+                        ge1: null,
+                        ge2: null,
+                        visualProficiency: null,
+                        visualAnalysis: null
                     }
                 }));
 
@@ -1003,7 +1020,7 @@ async function loadMyLeagueData() {
                 });
 
                 state.currentDraftPick = picksResponse.picks.length;
-                state.draftInProgress = state.currentDraftPick < (state.league.playerCount * 5);
+                state.draftInProgress = state.currentDraftPick < (state.league.playerCount * 8);
             } else {
                 // No picks yet, draft hasn't started
                 state.currentDraftPick = 0;

@@ -466,8 +466,11 @@ router.get('/competitions', async (req, res) => {
               json_agg(
                 json_build_object(
                   'id', cs.id, 'corps_name', cs.corps_name,
-                  'brass', cs.brass, 'percussion', cs.percussion,
-                  'guard', cs.guard, 'ge', cs.ge, 'visual', cs.visual,
+                  'brass', cs.brass, 'music_analysis', cs.music_analysis,
+                  'percussion', cs.percussion, 'color_guard', cs.color_guard,
+                  'ge1', cs.ge1, 'ge2', cs.ge2,
+                  'visual_proficiency', cs.visual_proficiency,
+                  'visual_analysis', cs.visual_analysis,
                   'total_score', cs.total_score
                 ) ORDER BY cs.corps_name
               ) FILTER (WHERE cs.id IS NOT NULL) as scores
