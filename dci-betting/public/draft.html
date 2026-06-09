@@ -936,10 +936,12 @@
         <!-- ── Phase 4: Complete ─────────────────────────────────── -->
         <div class="phase" id="phase-complete">
             <div class="draft-container">
-                <div class="complete-banner">
-                    <h2>Draft Complete!</h2>
-                    <p style="color:var(--color-text-muted);">All picks have been made. Here are the final rosters.</p>
-                    <a href="/app" class="btn btn-secondary" style="margin-top:0.75rem;">Back to League Hub</a>
+                <h1 class="draft-title" id="complete-league-name"></h1>
+                <p class="draft-subtitle">2026 Season &middot; Draft complete</p>
+
+                <div class="card">
+                    <div class="card-title">League Rosters</div>
+                    <div class="final-teams-grid" id="final-teams"></div>
                 </div>
 
                 <div class="card">
@@ -954,11 +956,6 @@
                         </thead>
                         <tbody id="standings-body"></tbody>
                     </table>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">Final Rosters</div>
-                    <div class="final-teams-grid" id="final-teams"></div>
                 </div>
             </div>
         </div>
@@ -1669,8 +1666,8 @@
     // ── Phase 4: Complete ─────────────────────────────────────────────────────
     async function loadCompletePhase() {
         showPhase('complete');
+        document.getElementById('complete-league-name').textContent = S.league.name || 'My League';
 
-        // Load picks
         try {
             const d = await api.request(`/draft/${S.leagueId}/picks`);
             const teams = {};
@@ -1685,6 +1682,24 @@
                 }
             }
 
+            // League rosters (shown first)
+            document.getElementById('final-teams').innerHTML = Object.values(teams).map(t => `
+                <div class="card" style="margin:0">
+                    <div class="card-title">${t.teamName || t.username}</div>
+                    ${SECTIONS.map(section => {
+                        const captionId = t.picks.find(id => { const c = getCaption(id); return c && c.section === section; });
+                        const c = captionId ? getCaption(captionId) : null;
+                        return `<div style="font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;align-items:center">
+                            <span style="color:rgba(255,255,255,0.45);font-size:0.75rem">${section}</span>
+                            <span style="color:${c ? c.color : 'rgba(255,255,255,0.2)'};font-weight:${c ? 600 : 400}">${c ? c.corps : '—'}</span>
+                        </div>`;
+                    }).join('')}
+                    <div style="font-size:0.82rem;padding:0.45rem 0 0;font-weight:700;text-align:right;color:#7dd899">
+                        Score: ${t.score.toFixed(1)}
+                    </div>
+                </div>
+            `).join('');
+
             // Standings
             const sorted = Object.values(teams).sort((a, b) => b.score - a.score);
             document.getElementById('standings-body').innerHTML = sorted.map((t, i) => `
@@ -1693,24 +1708,6 @@
                     <td>${t.teamName || t.username}</td>
                     <td>${t.score.toFixed(1)}</td>
                 </tr>
-            `).join('');
-
-            // Final rosters
-            document.getElementById('final-teams').innerHTML = Object.values(teams).map(t => `
-                <div class="card" style="margin:0">
-                    <div class="card-title">${t.teamName || t.username}</div>
-                    ${SECTIONS.map(section => {
-                        const captionId = t.picks.find(id => { const c = getCaption(id); return c && c.section === section; });
-                        const c = captionId ? getCaption(captionId) : null;
-                        return `<div style="font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid rgba(0,0,0,0.04);display:flex;justify-content:space-between">
-                            <span style="color:var(--color-text-muted)">${section}</span>
-                            <span style="color:${c ? c.color : 'rgba(0,0,0,0.18)'}">${c ? c.corps : '—'}</span>
-                        </div>`;
-                    }).join('')}
-                    <div style="font-size:0.82rem;padding:0.45rem 0 0;font-weight:700;text-align:right;color:var(--color-accent-primary)">
-                        Total: ${t.score.toFixed(1)}
-                    </div>
-                </div>
             `).join('');
         } catch (_) {}
     }

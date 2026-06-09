@@ -954,7 +954,7 @@ async function loadMyLeagueData() {
         }
 
         state.currentUser = currentUser;
-        state.currentUserId = `user${currentUser.userId}`;
+        state.currentUserId = `user${currentUser.id}`;
 
         // Get user's leagues
         const leaguesResponse = await api.request('/leagues/my');
