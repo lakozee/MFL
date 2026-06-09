@@ -289,11 +289,12 @@ router.post('/:id/open-lobby', authenticateToken, async (req, res) => {
             [timerValue, leagueId]
         );
 
-        // Pre-create draft_sessions rows for all existing members
+        // Wipe any stale sessions (from a previous draft attempt or cleared DB) and
+        // pre-create fresh ones so no stale is_ready = true bleeds into the new lobby.
+        await db.query('DELETE FROM draft_sessions WHERE league_id = $1', [leagueId]);
         await db.query(`
-            INSERT INTO draft_sessions (league_id, user_id)
-            SELECT $1, user_id FROM league_members WHERE league_id = $1
-            ON CONFLICT (league_id, user_id) DO NOTHING
+            INSERT INTO draft_sessions (league_id, user_id, is_connected, is_ready, last_heartbeat)
+            SELECT $1, user_id, false, false, NOW() FROM league_members WHERE league_id = $1
         `, [leagueId]);
 
         res.json({ message: 'Lobby opened', league: updated.rows[0] });

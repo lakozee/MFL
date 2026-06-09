@@ -1279,7 +1279,7 @@
             document.getElementById('p1-waiting-msg').textContent =
                 `Waiting for ${creator ? creator.username : 'the creator'} to open the draft lobby...`;
 
-            // Poll every 5s for lobby open
+            // Poll every 1s for lobby open / draft start
             S.pollInterval = setInterval(async () => {
                 try {
                     const d = await api.request(`/leagues/${S.leagueId}`);
@@ -1291,7 +1291,7 @@
                         else { loadLobbyPhase(); }
                     }
                 } catch (_) {}
-            }, 5000);
+            }, 1000);
         }
 
         // Invite link
