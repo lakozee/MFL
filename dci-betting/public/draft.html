@@ -1188,6 +1188,32 @@
             : generateDefaultAvatar(username, 32);
     }
 
+    async function loadCaptionScores() {
+        try {
+            const data = await api.request('/stats/corps');
+            const fieldMap = {
+                'Brass':              'avg_brass',
+                'Music Analysis':     'avg_music_analysis',
+                'Percussion':         'avg_percussion',
+                'Color Guard':        'avg_color_guard',
+                'General Effect 1':   'avg_ge1',
+                'General Effect 2':   'avg_ge2',
+                'Visual Proficiency': 'avg_visual_proficiency',
+                'Visual Analysis':    'avg_visual_analysis'
+            };
+            data.corps.forEach(c => {
+                ALL_CAPTIONS.forEach(cap => {
+                    if (cap.corps === c.corps_name) {
+                        const field = fieldMap[cap.section];
+                        if (field && c[field] != null) cap.score = parseFloat(c[field]) || 0;
+                    }
+                });
+            });
+        } catch (e) {
+            console.warn('[draft] Could not load caption scores:', e.message);
+        }
+    }
+
     // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
         const parts = window.location.pathname.split('/');
@@ -1199,6 +1225,9 @@
             window.location.href = '/auth';
             return;
         }
+
+        // Load live caption scores (falls back to 0 if unavailable)
+        await loadCaptionScores();
 
         // Fetch league + members
         let leagueData, membersData;
