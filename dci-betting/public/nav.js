@@ -67,7 +67,7 @@ class NavigationManager {
 
       if (isAppPage) {
         appNav.innerHTML = `
-          <button class="nav-item active" id="gNavDraft" onclick="globalNavClick(this,'draft')">Draft</button>
+          <a href="${leagueHref}" class="nav-item">My League</a>
           <button class="nav-item" id="gNavMyTeam" onclick="globalNavClick(this,'myTeam')">My Team</button>
           <button class="nav-item" id="gNavTrade" onclick="globalNavClick(this,'trade')">Trade</button>
           <button class="nav-item" id="gNavStandings" onclick="globalNavClick(this,'standings')">Standings</button>

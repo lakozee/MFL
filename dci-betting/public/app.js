@@ -726,7 +726,7 @@ function renderDraftView() {
 }
 
 function renderMyTeam() {
-    const myTeam = getTeam('user1');
+    const myTeam = getTeam(state.currentUserId);
     const totalScore = calculateTeamScore(myTeam);
 
     if (elements.teamScore) {
@@ -1081,7 +1081,7 @@ async function init() {
 
     if (hasLeague) {
         const urlView = new URLSearchParams(window.location.search).get('view');
-        switchView(urlView || 'draft');
+        switchView(urlView || 'myTeam');
         if (state.draftInProgress) {
             renderDraftView();
         }
