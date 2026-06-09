@@ -329,12 +329,21 @@ function setupDraftSocket(server, db) {
                 console.log(`[Socket] ${socket.username} disconnected from league ${leagueId}`);
 
                 // If ALL players are now disconnected, reset the draft so they start fresh
+                // (but never wipe a completed draft — picks must persist after everyone leaves)
                 const allSessions = await db.query(
                     'SELECT is_connected FROM draft_sessions WHERE league_id = $1',
                     [leagueId]
                 );
                 const allGone = allSessions.rows.length > 0 && allSessions.rows.every(s => !s.is_connected);
                 if (allGone) {
+                    const leagueCheck = await db.query(
+                        'SELECT draft_completed FROM leagues WHERE id = $1',
+                        [leagueId]
+                    );
+                    if (leagueCheck.rows[0]?.draft_completed) {
+                        console.log(`[Socket] All players left league ${leagueId} — draft complete, preserving picks`);
+                        return;
+                    }
                     // Stop all active timers for this league
                     stopTurnTimer(leagueId, draftTimers);
                     for (const [key, timer] of disconnectTimers.entries()) {
@@ -343,7 +352,7 @@ function setupDraftSocket(server, db) {
                             disconnectTimers.delete(key);
                         }
                     }
-                    // Wipe picks and reset league state
+                    // Wipe picks and reset league state (only for incomplete/abandoned drafts)
                     await db.query('DELETE FROM draft_picks WHERE league_id = $1', [leagueId]);
                     await db.query('DELETE FROM draft_sessions WHERE league_id = $1', [leagueId]);
                     await db.query(`
