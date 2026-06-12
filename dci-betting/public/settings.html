@@ -13,6 +13,148 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="styles.css">
+
+    <style>
+        .settings-container {
+            max-width: 640px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .settings-container h1 {
+            font-family: 'Outfit', sans-serif;
+            color: #ffffff;
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-section {
+            background: rgba(20,20,20,0.82);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(6px);
+            color: rgba(255,255,255,0.85);
+        }
+
+        .settings-section h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7dd899;
+            margin: 0 0 1rem;
+        }
+
+        .settings-section .form-label {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .settings-section .form-input {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #ffffff;
+        }
+
+        .settings-section .form-input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+
+        .settings-section .form-input:focus {
+            border-color: var(--color-accent-primary);
+            box-shadow: 0 0 0 3px rgba(47, 143, 78, 0.25);
+        }
+
+        .settings-section .form-hint {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .settings-section .btn-secondary {
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .settings-section .btn-secondary:hover {
+            background: rgba(255,255,255,0.18);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .profile-picture-editor {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .profile-picture-editor .form-hint {
+            flex-basis: 100%;
+        }
+
+        .settings-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.15);
+            flex-shrink: 0;
+        }
+
+        .avatar-controls {
+            display: flex;
+            gap: 0.75rem;
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .avatar-controls .form-input {
+            flex: 1;
+        }
+
+        .account-info .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .account-info .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: rgba(255,255,255,0.55);
+        }
+
+        .info-value {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .danger-zone {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .danger-zone h2 {
+            color: #ef4444;
+        }
+
+        .settings-section .warning-box p,
+        .settings-section .warning-box li {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .settings-section .league-name-display {
+            color: #7dd899;
+        }
+
+        .settings-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
 </head>
 
 <body>

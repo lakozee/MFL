@@ -874,7 +874,7 @@
 
             <!-- Left: Corps Stats -->
             <div class="panel-card">
-                <p class="panel-card-title">Corps Stats (Season 2025)</p>
+                <p class="panel-card-title">Corps Stats (Season 2026)</p>
                 <div class="table-container">
                     <table id="corps-table">
                         <thead>
@@ -1756,7 +1756,7 @@ document.getElementById('save-add-comp-btn').addEventListener('click', async () 
     }
 
     try {
-        const comp = await api('POST', '/api/admin/competitions', { name, date, location, season: 2025 });
+        const comp = await api('POST', '/api/admin/competitions', { name, date, location, season: 2026 });
         if (competition_type === 'championship') {
             await api('PUT', `/api/admin/competitions/${comp.id}/type`, { competition_type: 'championship' });
         }

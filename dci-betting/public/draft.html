@@ -723,7 +723,7 @@
         <div class="phase" id="phase-prelobby">
             <div class="draft-container">
                 <h1 class="draft-title" id="p1-league-name">Loading...</h1>
-                <p class="draft-subtitle" id="p1-season">2025 Season</p>
+                <p class="draft-subtitle" id="p1-season">2026 Season</p>
 
                 <!-- Invite row -->
                 <div class="card" style="padding:1rem;margin-bottom:1.5rem;">
@@ -1280,7 +1280,7 @@
         showPhase('prelobby');
 
         document.getElementById('p1-league-name').textContent = S.league.name;
-        document.getElementById('p1-season').textContent = `2025 Season · ${S.members.length} of ${S.league.max_players} players`;
+        document.getElementById('p1-season').textContent = `2026 Season · ${S.members.length} of ${S.league.max_players} players`;
 
         // Member list
         const list = document.getElementById('p1-member-list');
@@ -1316,7 +1316,7 @@
                             </div>
                         </li>
                     `).join('');
-                    document.getElementById('p1-season').textContent = `2025 Season · ${S.members.length} of ${S.league.max_players} players`;
+                    document.getElementById('p1-season').textContent = `2026 Season · ${S.members.length} of ${S.league.max_players} players`;
                 } catch (_) {}
             }, 5000);
         } else {
