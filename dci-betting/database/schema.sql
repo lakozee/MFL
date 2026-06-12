@@ -121,7 +121,9 @@ VALUES
     ('The Academy',            2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
     ('Troopers',               2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
     ('Colts',                  2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-    ('Spartans',               2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    ('Spartans',               2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Genesis',                2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    ('Seattle Cascades',       2026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 ON CONFLICT (corps_name, season) DO NOTHING;
 
 -- League invite tokens
@@ -204,6 +206,7 @@ INSERT INTO competitions (name, date, location, season, competition_type) VALUES
     ('Northwest Youth Music Games Portland',  '2026-07-01', 'Portland, OR',       2026, 'regular'),
     ('Preview of Champions',                   '2026-07-02', 'Nashua, NH',         2026, 'regular'),
     ('MidCal Showcase',                       '2026-07-02', 'Camarillo, CA',      2026, 'regular'),
+    ('Rotary Music Festival',                 '2026-07-02', 'Cedarburg, WI',      2026, 'regular'),
     ('Show of Shows',                         '2026-07-03', 'Rockford, IL',       2026, 'regular'),
     ('DCI Capital Classic',                   '2026-07-03', 'Sacramento, CA',     2026, 'regular'),
     ('River City Rhapsody',                   '2026-07-05', 'La Crosse, WI',      2026, 'regular'),

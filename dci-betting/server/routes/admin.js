@@ -146,6 +146,8 @@ router.get('/users', async (req, res) => {
                 WHEN dp.caption_id LIKE 'troop-%'  THEN 'Troopers'
                 WHEN dp.caption_id LIKE 'colts-%'  THEN 'Colts'
                 WHEN dp.caption_id LIKE 'sparts-%' THEN 'Spartans'
+                WHEN dp.caption_id LIKE 'gen-%'    THEN 'Genesis'
+                WHEN dp.caption_id LIKE 'cas-%'    THEN 'Seattle Cascades'
               END
               WHERE dp.user_id = u.id AND dp.league_id = l.id
             ) scores ON true
@@ -368,6 +370,8 @@ router.get('/leagues/:id/members', async (req, res) => {
                 WHEN dp.caption_id LIKE 'troop-%'  THEN 'Troopers'
                 WHEN dp.caption_id LIKE 'colts-%'  THEN 'Colts'
                 WHEN dp.caption_id LIKE 'sparts-%' THEN 'Spartans'
+                WHEN dp.caption_id LIKE 'gen-%'    THEN 'Genesis'
+                WHEN dp.caption_id LIKE 'cas-%'    THEN 'Seattle Cascades'
               END
               WHERE dp.user_id = lm.user_id AND dp.league_id = lm.league_id
             ) scores ON true

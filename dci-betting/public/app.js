@@ -169,6 +169,24 @@ const state = {
         { id: 'sparts-ge2',                 corps: 'Spartans', section: 'General Effect 2',   score: 0, owner: null, color: '#312e81' },
         { id: 'sparts-visual-proficiency',  corps: 'Spartans', section: 'Visual Proficiency', score: 0, owner: null, color: '#312e81' },
         { id: 'sparts-visual-analysis',     corps: 'Spartans', section: 'Visual Analysis',    score: 0, owner: null, color: '#312e81' },
+        // Genesis
+        { id: 'gen-brass',               corps: 'Genesis', section: 'Brass',              score: 0, owner: null, color: '#6b21a8' },
+        { id: 'gen-music-analysis',      corps: 'Genesis', section: 'Music Analysis',     score: 0, owner: null, color: '#6b21a8' },
+        { id: 'gen-percussion',          corps: 'Genesis', section: 'Percussion',         score: 0, owner: null, color: '#6b21a8' },
+        { id: 'gen-color-guard',         corps: 'Genesis', section: 'Color Guard',        score: 0, owner: null, color: '#6b21a8' },
+        { id: 'gen-ge1',                 corps: 'Genesis', section: 'General Effect 1',   score: 0, owner: null, color: '#6b21a8' },
+        { id: 'gen-ge2',                 corps: 'Genesis', section: 'General Effect 2',   score: 0, owner: null, color: '#6b21a8' },
+        { id: 'gen-visual-proficiency',  corps: 'Genesis', section: 'Visual Proficiency', score: 0, owner: null, color: '#6b21a8' },
+        { id: 'gen-visual-analysis',     corps: 'Genesis', section: 'Visual Analysis',    score: 0, owner: null, color: '#6b21a8' },
+        // Seattle Cascades
+        { id: 'cas-brass',               corps: 'Seattle Cascades', section: 'Brass',              score: 0, owner: null, color: '#075985' },
+        { id: 'cas-music-analysis',      corps: 'Seattle Cascades', section: 'Music Analysis',     score: 0, owner: null, color: '#075985' },
+        { id: 'cas-percussion',          corps: 'Seattle Cascades', section: 'Percussion',         score: 0, owner: null, color: '#075985' },
+        { id: 'cas-color-guard',         corps: 'Seattle Cascades', section: 'Color Guard',        score: 0, owner: null, color: '#075985' },
+        { id: 'cas-ge1',                 corps: 'Seattle Cascades', section: 'General Effect 1',   score: 0, owner: null, color: '#075985' },
+        { id: 'cas-ge2',                 corps: 'Seattle Cascades', section: 'General Effect 2',   score: 0, owner: null, color: '#075985' },
+        { id: 'cas-visual-proficiency',  corps: 'Seattle Cascades', section: 'Visual Proficiency', score: 0, owner: null, color: '#075985' },
+        { id: 'cas-visual-analysis',     corps: 'Seattle Cascades', section: 'Visual Analysis',    score: 0, owner: null, color: '#075985' },
     ],
 
     // League info
