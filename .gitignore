@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment files / secrets — NEVER commit these
+.env
+.env.local
+.env.production
+*pgpass*
+!.env.example
+
+# Local one-off DB setup/admin scripts (contain hardcoded credentials)
+/create-admin.js
+/fix-db.js
+/setup-db.js
+
+# OS / shell artifacts
+/nul
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
