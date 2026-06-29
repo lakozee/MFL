@@ -36,6 +36,10 @@ function setupDraftSocket(server, db) {
     io.on('connection', (socket) => {
         console.log(`[Socket] ${socket.username} (${socket.userId}) connected`);
 
+        // Personal room — lets HTTP routes target this user across all their
+        // tabs/devices via io.to(`user-${userId}`).emit(...)
+        socket.join(`user-${socket.userId}`);
+
         // ── join-lobby ────────────────────────────────────────────────────────
         socket.on('join-lobby', async (leagueId) => {
             try {
@@ -170,7 +174,15 @@ function setupDraftSocket(server, db) {
                     'SELECT creator_id FROM leagues WHERE id = $1',
                     [leagueId]
                 );
-                if (leagueCheck.rows.length === 0 || leagueCheck.rows[0].creator_id !== socket.userId) {
+                if (leagueCheck.rows.length === 0) {
+                    socket.emit('error', { message: 'League not found' });
+                    return;
+                }
+                if (leagueCheck.rows[0].creator_id === null) {
+                    socket.emit('error', { message: 'This league has no creator. An admin must assign a creator before a draft can start.' });
+                    return;
+                }
+                if (leagueCheck.rows[0].creator_id !== socket.userId) {
                     socket.emit('error', { message: 'Only the league creator can start the draft' });
                     return;
                 }

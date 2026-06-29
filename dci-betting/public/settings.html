@@ -154,6 +154,111 @@
             display: flex;
             justify-content: flex-end;
         }
+
+        /* ── Modal styling (matches dark theme) ─────────────────────────── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal-card {
+            background: rgba(15, 15, 15, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 1.75rem;
+            width: 100%;
+            max-width: 480px;
+            color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-card h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 1rem;
+        }
+
+        .modal-card p {
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.75);
+            margin: 0 0 1rem;
+            line-height: 1.5;
+        }
+
+        .modal-note {
+            background: rgba(125, 216, 153, 0.08);
+            border: 1px solid rgba(125, 216, 153, 0.25);
+            border-left: 3px solid #7dd899;
+            border-radius: 8px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        .modal-note strong {
+            color: #7dd899;
+        }
+
+        .modal-select,
+        .modal-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: #ffffff;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.92rem;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 1.25rem;
+        }
+
+        .modal-select:focus,
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--color-accent-primary);
+            box-shadow: 0 0 0 3px rgba(47, 143, 78, 0.25);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .modal-actions .btn {
+            padding: 0.55rem 1.1rem;
+            font-size: 0.88rem;
+        }
+
+        .league-action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+
+        .modal-error {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            min-height: 1rem;
+        }
     </style>
 </head>
 
@@ -218,25 +323,84 @@
                     <p class="form-hint">This action cannot be undone</p>
                 </div>
 
-                <!-- Leave League Section -->
+                <!-- League Management Section -->
                 <div class="settings-section" id="leagueSection" style="display: none;">
                     <h2>League Management</h2>
                     <div class="form-group">
                         <label class="form-label">Current League</label>
                         <p class="league-name-display" id="currentLeagueName">Not in a league</p>
                     </div>
-                    <div class="warning-box">
-                        <p><strong>⚠️ Warning:</strong> Leaving the league will:</p>
-                        <ul>
-                            <li>Remove you from the league permanently</li>
-                            <li>Release all your drafted picks back to available pool</li>
-                            <li>Delete your Fantasy Corp from this league</li>
-                        </ul>
-                        <p>You'll need a new invite link to rejoin.</p>
+
+                    <!-- Regular member: just leave -->
+                    <div id="memberLeaveBlock" style="display:none;">
+                        <div class="warning-box">
+                            <p><strong>⚠️ Warning:</strong> Leaving the league will:</p>
+                            <ul>
+                                <li>Remove you from the league permanently</li>
+                                <li>Release all your drafted picks back to the available pool</li>
+                                <li>Delete your Fantasy Corp from this league</li>
+                            </ul>
+                            <p>You'll need a new invite link to rejoin.</p>
+                        </div>
+                        <button class="btn btn-danger" id="leaveLeagueBtn">Leave League</button>
                     </div>
-                    <button class="btn btn-danger" id="leaveLeagueBtn">
-                        Leave League
-                    </button>
+
+                    <!-- Creator: must transfer or dissolve -->
+                    <div id="creatorBlock" style="display:none;">
+                        <div class="warning-box">
+                            <p><strong>As league creator:</strong> You can't directly leave the league.
+                               You must either transfer ownership to another member, or dissolve the
+                               league entirely.</p>
+                        </div>
+                        <div class="league-action-buttons">
+                            <button class="btn btn-secondary" id="transferOwnershipBtn">Transfer Ownership</button>
+                            <button class="btn btn-danger" id="dissolveLeagueBtn">Dissolve League</button>
+                        </div>
+                    </div>
+
+                    <!-- Draft-active: actions blocked -->
+                    <div id="draftActiveBlock" style="display:none;">
+                        <div class="warning-box">
+                            <p>A draft is currently in progress. You cannot leave, transfer, or dissolve
+                               the league until the draft is complete.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transfer Ownership Modal -->
+                <div class="modal-backdrop" id="transferModal">
+                    <div class="modal-card">
+                        <h3>Transfer Ownership</h3>
+                        <div class="modal-note">
+                            <strong>Heads up:</strong> Transferring ownership keeps the league running
+                            with someone else in charge — you'll stay as a regular member afterwards.
+                            If you want to remove the league entirely instead, cancel this and use
+                            <em>Dissolve League</em>.
+                        </div>
+                        <label class="form-label" for="transferMemberSelect">New owner</label>
+                        <select class="modal-select" id="transferMemberSelect"></select>
+                        <div class="modal-error" id="transferError"></div>
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary" id="transferCancelBtn">Cancel</button>
+                            <button class="btn btn-primary" id="transferConfirmBtn">Transfer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dissolve League Modal -->
+                <div class="modal-backdrop" id="dissolveModal">
+                    <div class="modal-card">
+                        <h3>Dissolve League</h3>
+                        <p>This is <strong>permanent</strong>. The league, every member's roster, and
+                           all invite links will be deleted. This cannot be undone.</p>
+                        <p>To confirm, type the league name exactly: <strong id="dissolveLeagueNameRef"></strong></p>
+                        <input type="text" class="modal-input" id="dissolveConfirmInput" placeholder="Type league name to confirm" autocomplete="off">
+                        <div class="modal-error" id="dissolveError"></div>
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary" id="dissolveCancelBtn">Cancel</button>
+                            <button class="btn btn-danger" id="dissolveConfirmBtn" disabled>Dissolve League</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="settings-actions">
@@ -274,24 +438,8 @@
                 // TODO: Format created date when we have it
                 document.getElementById('createdAt').textContent = 'Recently';
 
-                // Try to load league info
-                try {
-                    const leaguesResponse = await api.request('/leagues/my');
-                    if (leaguesResponse.leagues && leaguesResponse.leagues.length > 0) {
-                        const league = leaguesResponse.leagues[0];
-                        const leagueNameDisplay = document.getElementById('currentLeagueName');
-                        const leagueSection = document.getElementById('leagueSection');
-
-                        if (leagueNameDisplay) {
-                            leagueNameDisplay.textContent = league.name;
-                        }
-                        if (leagueSection) {
-                            leagueSection.style.display = 'block';
-                        }
-                    }
-                } catch (error) {
-                    console.log('No league data:', error);
-                }
+                // Load league info and wire up the leave / transfer / dissolve UI
+                await loadLeagueSection(user);
             } catch (error) {
                 console.error('Failed to load settings:', error);
                 window.location.href = '/auth';
@@ -322,30 +470,145 @@
             }
         });
 
-        // Leave league handler
-        const leaveLeagueBtn = document.getElementById('leaveLeagueBtn');
-        if (leaveLeagueBtn) {
-            leaveLeagueBtn.addEventListener('click', async () => {
-                if (!confirm('Are you sure you want to leave this league? This action cannot be undone. All your drafted picks will be released.')) {
+        // League management state (set by loadLeagueSection)
+        let currentLeague = null;
+        let leagueMembers = [];
+
+        async function loadLeagueSection(user) {
+            try {
+                const leaguesResponse = await api.request('/leagues/my');
+                if (!leaguesResponse.leagues || leaguesResponse.leagues.length === 0) {
+                    // Not in a league — keep section hidden
                     return;
                 }
 
+                currentLeague = leaguesResponse.leagues[0];
+                document.getElementById('currentLeagueName').textContent = currentLeague.name;
+                document.getElementById('leagueSection').style.display = 'block';
+
+                // Fetch members for transfer dropdown
                 try {
-                    const leaguesResponse = await api.request('/leagues/my');
-                    if (leaguesResponse.leagues && leaguesResponse.leagues.length > 0) {
-                        const leagueId = leaguesResponse.leagues[0].id;
+                    const m = await api.request(`/leagues/${currentLeague.id}/members`);
+                    leagueMembers = m.members || [];
+                } catch (_) {
+                    leagueMembers = [];
+                }
 
-                        await api.request(`/leagues/${leagueId}/leave`, {
-                            method: 'POST'
-                        });
+                const draftActive = currentLeague.draft_started && !currentLeague.draft_completed;
+                const isCreator = Number(currentLeague.creator_id) === Number(user.id);
 
-                        alert('Successfully left the league');
-                        window.location.href = '/app';
-                    }
-                } catch (error) {
-                    alert('Failed to leave league: ' + error.message);
+                if (draftActive) {
+                    document.getElementById('draftActiveBlock').style.display = 'block';
+                } else if (isCreator) {
+                    document.getElementById('creatorBlock').style.display = 'block';
+                    wireCreatorHandlers();
+                } else {
+                    document.getElementById('memberLeaveBlock').style.display = 'block';
+                    wireMemberHandlers();
+                }
+            } catch (error) {
+                console.log('League section load failed:', error);
+            }
+        }
+
+        function wireMemberHandlers() {
+            document.getElementById('leaveLeagueBtn').addEventListener('click', async () => {
+                if (!confirm(`Are you sure you want to leave "${currentLeague.name}"? Your drafted captions will be released and you'll need a new invite to rejoin.`)) {
+                    return;
+                }
+                try {
+                    await api.request(`/leagues/${currentLeague.id}/leave`, { method: 'POST' });
+                    alert('Successfully left the league.');
+                    window.location.href = '/app';
+                } catch (e) {
+                    alert('Failed to leave league: ' + e.message);
                 }
             });
+        }
+
+        function wireCreatorHandlers() {
+            const transferBtn = document.getElementById('transferOwnershipBtn');
+            const dissolveBtn = document.getElementById('dissolveLeagueBtn');
+            const otherMembers = leagueMembers.filter(m => Number(m.user_id) !== Number(currentLeague.creator_id));
+
+            // Solo creator: only dissolve is available
+            if (otherMembers.length === 0) {
+                transferBtn.style.display = 'none';
+            } else {
+                transferBtn.addEventListener('click', openTransferModal);
+            }
+            dissolveBtn.addEventListener('click', openDissolveModal);
+
+            // Wire modal close buttons
+            document.getElementById('transferCancelBtn').addEventListener('click', closeTransferModal);
+            document.getElementById('transferConfirmBtn').addEventListener('click', submitTransfer);
+            document.getElementById('dissolveCancelBtn').addEventListener('click', closeDissolveModal);
+            document.getElementById('dissolveConfirmBtn').addEventListener('click', submitDissolve);
+
+            // Type-to-confirm: enable Dissolve button only on exact match
+            const dissolveInput = document.getElementById('dissolveConfirmInput');
+            dissolveInput.addEventListener('input', () => {
+                const match = dissolveInput.value === currentLeague.name;
+                document.getElementById('dissolveConfirmBtn').disabled = !match;
+            });
+        }
+
+        function openTransferModal() {
+            const select = document.getElementById('transferMemberSelect');
+            const otherMembers = leagueMembers.filter(m => Number(m.user_id) !== Number(currentLeague.creator_id));
+            select.innerHTML = otherMembers.map(m =>
+                `<option value="${m.user_id}">${m.username}</option>`
+            ).join('');
+            document.getElementById('transferError').textContent = '';
+            document.getElementById('transferModal').classList.add('open');
+        }
+
+        function closeTransferModal() {
+            document.getElementById('transferModal').classList.remove('open');
+        }
+
+        async function submitTransfer() {
+            const newCreatorId = parseInt(document.getElementById('transferMemberSelect').value);
+            const errEl = document.getElementById('transferError');
+            errEl.textContent = '';
+            try {
+                await api.request(`/leagues/${currentLeague.id}/transfer`, {
+                    method: 'POST',
+                    body: JSON.stringify({ newCreatorId })
+                });
+                alert('Ownership transferred successfully. You are now a regular member.');
+                window.location.reload();
+            } catch (e) {
+                errEl.textContent = e.message || 'Failed to transfer ownership.';
+            }
+        }
+
+        function openDissolveModal() {
+            document.getElementById('dissolveLeagueNameRef').textContent = currentLeague.name;
+            document.getElementById('dissolveConfirmInput').value = '';
+            document.getElementById('dissolveError').textContent = '';
+            document.getElementById('dissolveConfirmBtn').disabled = true;
+            document.getElementById('dissolveModal').classList.add('open');
+        }
+
+        function closeDissolveModal() {
+            document.getElementById('dissolveModal').classList.remove('open');
+        }
+
+        async function submitDissolve() {
+            const confirmName = document.getElementById('dissolveConfirmInput').value;
+            const errEl = document.getElementById('dissolveError');
+            errEl.textContent = '';
+            try {
+                await api.request(`/leagues/${currentLeague.id}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ confirmName })
+                });
+                alert('League dissolved.');
+                window.location.href = '/app';
+            } catch (e) {
+                errEl.textContent = e.message || 'Failed to dissolve the league.';
+            }
         }
 
         // Save settings handler

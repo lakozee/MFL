@@ -27,11 +27,31 @@
             </div>
 
             <div id="error" class="error-message" style="display: none;"></div>
+
+            <div id="blockedBox" class="blocked-box" style="display: none;">
+                <p id="blockedTitle" class="blocked-title"></p>
+                <p id="blockedMsg" class="blocked-msg"></p>
+                <div class="blocked-actions">
+                    <a href="/settings" class="btn btn-secondary" id="blockedSettingsLink" style="display:none;">Account Settings</a>
+                    <a href="/app" class="btn btn-primary">Go to My League</a>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const token = window.location.pathname.split('/invite/')[1];
+
+        function showBlocked({ title, message, showSettingsLink }) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('statusMessage').textContent = 'Unable to join league';
+            document.getElementById('blockedBox').style.display = 'block';
+            document.getElementById('blockedTitle').textContent = title;
+            document.getElementById('blockedMsg').textContent = message;
+            if (showSettingsLink) {
+                document.getElementById('blockedSettingsLink').style.display = 'inline-block';
+            }
+        }
 
         async function processInvite() {
             try {
@@ -55,6 +75,26 @@
                 window.location.href = `/league/${result.leagueId}`;
 
             } catch (error) {
+                const msg = (error.message || '').toLowerCase();
+
+                if (msg.includes('already in a league')) {
+                    showBlocked({
+                        title: 'You are already in a league',
+                        message: 'To join this league, leave your current league in Account Settings first.',
+                        showSettingsLink: true
+                    });
+                    return;
+                }
+
+                if (msg.includes('kicked')) {
+                    showBlocked({
+                        title: 'You were kicked from this league',
+                        message: 'You can\'t use this invite right now.',
+                        showSettingsLink: false
+                    });
+                    return;
+                }
+
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
                 document.getElementById('error').textContent = error.message || 'Failed to join league. The invite may be expired or invalid.';
@@ -65,6 +105,42 @@
     </script>
 
     <style>
+        .blocked-box {
+            background: rgba(20, 20, 20, 0.85);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .blocked-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fca5a5;
+            margin: 0 0 0.5rem;
+        }
+
+        .blocked-msg {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.92rem;
+            margin: 0 0 1.25rem;
+            line-height: 1.5;
+        }
+
+        .blocked-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .blocked-actions .btn {
+            padding: 0.55rem 1.1rem;
+            font-size: 0.88rem;
+        }
+
         .loading-spinner {
             text-align: center;
             padding: var(--spacing-2xl);

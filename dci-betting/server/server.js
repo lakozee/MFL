@@ -158,7 +158,10 @@ app.use((err, req, res, next) => {
 
 // Start server — bind to 0.0.0.0 so Railway can route external traffic
 const server = http.createServer(app);
-setupDraftSocket(server, pool);
+const io = setupDraftSocket(server, pool);
+// Expose io to HTTP routes so they can emit events to league rooms
+// (kick/leave/transfer/dissolve broadcasts).
+app.set('io', io);
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`[server] Fantasy DCI running on port ${PORT}`);

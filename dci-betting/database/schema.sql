@@ -254,3 +254,13 @@ CREATE TABLE IF NOT EXISTS draft_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_draft_sessions_league ON draft_sessions(league_id);
 CREATE INDEX IF NOT EXISTS idx_draft_sessions_connected ON draft_sessions(is_connected);
+
+-- 60s rejoin cooldown after a kick (per user, per league)
+CREATE TABLE IF NOT EXISTS league_kicks (
+    league_id INTEGER REFERENCES leagues(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    kicked_at TIMESTAMP DEFAULT NOW(),
+    PRIMARY KEY (league_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_league_kicks_at ON league_kicks(kicked_at);

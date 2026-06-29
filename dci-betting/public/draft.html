@@ -187,6 +187,31 @@
         .member-name { font-size: 0.9rem; font-weight: 500; color: #ffffff; }
         .member-team { font-size: 0.78rem; color: rgba(255,255,255,0.5); }
 
+        .member-item .member-text { flex: 1; min-width: 0; }
+
+        .member-kick-btn {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fca5a5;
+            padding: 0.3rem 0.7rem;
+            font-size: 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .member-kick-btn:hover {
+            background: rgba(239, 68, 68, 0.28);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #ffffff;
+        }
+
+        .member-kick-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .timer-row {
             display: flex;
             align-items: center;
@@ -1232,6 +1257,60 @@
         }
     }
 
+    // ── Prelobby member list (with kick buttons for creator) ─────────────────
+    function renderPrelobbyMembers() {
+        const list = document.getElementById('p1-member-list');
+        if (!list) return;
+
+        const draftActive = S.league && S.league.draft_started && !S.league.draft_completed;
+        const canKick = S.isCreator && !draftActive;
+
+        list.innerHTML = S.members.map(m => {
+            const isMe = Number(m.user_id) === Number(S.currentUser.id);
+            const showKick = canKick && !isMe;
+            return `
+                <li class="member-item">
+                    <img class="member-avatar" src="${avatarUrl(m.username, m.profile_picture_url)}" alt="${m.username}">
+                    <div class="member-text">
+                        <div class="member-name">${m.username}</div>
+                        <div class="member-team">${m.team_name}</div>
+                    </div>
+                    ${showKick ? `<button class="member-kick-btn" data-user-id="${m.user_id}" data-username="${m.username}">Kick</button>` : ''}
+                </li>
+            `;
+        }).join('');
+
+        list.querySelectorAll('.member-kick-btn').forEach(btn => {
+            btn.addEventListener('click', () => handleKick(
+                Number(btn.dataset.userId),
+                btn.dataset.username
+            ));
+        });
+    }
+
+    async function handleKick(targetUserId, targetUsername) {
+        const msg = `Are you sure you want to kick ${targetUsername}? Their drafted captions will be released.`;
+        if (!confirm(msg)) return;
+        try {
+            await api.request(`/leagues/${S.leagueId}/kick`, {
+                method: 'POST',
+                body: JSON.stringify({ userId: targetUserId })
+            });
+            // Refresh member list immediately (the socket event will also
+            // fire shortly, but doing this avoids flicker).
+            try {
+                const d = await api.request(`/leagues/${S.leagueId}/members`);
+                S.members = d.members;
+                renderPrelobbyMembers();
+                document.getElementById('p1-season').textContent =
+                    `2026 Season · ${S.members.length} of ${S.league.max_players} players`;
+            } catch (_) {}
+            showToast(`${targetUsername} was removed from the league.`);
+        } catch (e) {
+            alert('Failed to kick member: ' + e.message);
+        }
+    }
+
     // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
         const parts = window.location.pathname.split('/');
@@ -1282,17 +1361,11 @@
         document.getElementById('p1-league-name').textContent = S.league.name;
         document.getElementById('p1-season').textContent = `2026 Season · ${S.members.length} of ${S.league.max_players} players`;
 
+        // Connect socket so kick/leave/dissolve notifications work in real time
+        if (!S.socket) connectSocket();
+
         // Member list
-        const list = document.getElementById('p1-member-list');
-        list.innerHTML = S.members.map(m => `
-            <li class="member-item">
-                <img class="member-avatar" src="${avatarUrl(m.username, m.profile_picture_url)}" alt="${m.username}">
-                <div>
-                    <div class="member-name">${m.username}</div>
-                    <div class="member-team">${m.team_name}</div>
-                </div>
-            </li>
-        `).join('');
+        renderPrelobbyMembers();
 
         // Show creator or waiting panel
         if (S.isCreator) {
@@ -1306,16 +1379,7 @@
                 try {
                     const d = await api.request(`/leagues/${S.leagueId}/members`);
                     S.members = d.members;
-                    const list = document.getElementById('p1-member-list');
-                    list.innerHTML = S.members.map(m => `
-                        <li class="member-item">
-                            <img class="member-avatar" src="${avatarUrl(m.username, m.profile_picture_url)}" alt="${m.username}">
-                            <div>
-                                <div class="member-name">${m.username}</div>
-                                <div class="member-team">${m.team_name}</div>
-                            </div>
-                        </li>
-                    `).join('');
+                    renderPrelobbyMembers();
                     document.getElementById('p1-season').textContent = `2026 Season · ${S.members.length} of ${S.league.max_players} players`;
                 } catch (_) {}
             }, 5000);
@@ -1856,6 +1920,61 @@
 
         S.socket.on('error', (data) => {
             showToast(data.message || 'An error occurred', 'error');
+        });
+
+        // ── Member changes (kick / leave / transfer / dissolve) ──────────
+        S.socket.on('player-kicked', async (data) => {
+            // Someone else was kicked — refresh member list
+            if (Number(data.userId) === Number(S.currentUser.id)) return;
+            try {
+                const d = await api.request(`/leagues/${S.leagueId}/members`);
+                S.members = d.members;
+                renderPrelobbyMembers();
+                document.getElementById('p1-season').textContent =
+                    `2026 Season · ${S.members.length} of ${S.league.max_players} players`;
+            } catch (_) {}
+        });
+
+        S.socket.on('player-left', async (data) => {
+            try {
+                const d = await api.request(`/leagues/${S.leagueId}/members`);
+                S.members = d.members;
+                renderPrelobbyMembers();
+                document.getElementById('p1-season').textContent =
+                    `2026 Season · ${S.members.length} of ${S.league.max_players} players`;
+            } catch (_) {}
+        });
+
+        S.socket.on('creator-changed', async (data) => {
+            // Refresh league + member state so the new creator's UI updates
+            try {
+                const [lg, mb] = await Promise.all([
+                    api.request(`/leagues/${S.leagueId}`),
+                    api.request(`/leagues/${S.leagueId}/members`)
+                ]);
+                S.league = lg.league;
+                S.members = mb.members;
+                S.isCreator = (Number(S.league.creator_id) === Number(S.currentUser.id));
+                renderPrelobbyMembers();
+            } catch (_) {}
+        });
+
+        // ── You were kicked ──────────────────────────────────────────────
+        S.socket.on('you-were-kicked', (data) => {
+            showToast('You were removed from this league.', 'error');
+            if (S.heartbeatInterval) clearInterval(S.heartbeatInterval);
+            if (S.timerInterval) clearInterval(S.timerInterval);
+            if (S.pollInterval) clearInterval(S.pollInterval);
+            setTimeout(() => { window.location.href = '/app'; }, 2000);
+        });
+
+        // ── League dissolved ─────────────────────────────────────────────
+        S.socket.on('league-dissolved', (data) => {
+            showToast('This league has been dissolved.', 'error');
+            if (S.heartbeatInterval) clearInterval(S.heartbeatInterval);
+            if (S.timerInterval) clearInterval(S.timerInterval);
+            if (S.pollInterval) clearInterval(S.pollInterval);
+            setTimeout(() => { window.location.href = '/app'; }, 2000);
         });
     }
 

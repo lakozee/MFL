@@ -234,6 +234,79 @@ async function initDb() {
             console.warn('[init-db] Migration warning (rockies scores):', err.message.split('\n')[0]);
         }
 
+        // One-time migration: enforce one-league-per-user.
+        // Removes duplicate league memberships then adds a UNIQUE constraint.
+        // Hybrid rule for picking which league to keep:
+        //   1. If user is in any league with draft_started OR draft_completed,
+        //      keep the most recently joined of those.
+        //   2. Otherwise keep the most recently joined league overall.
+        // Wrapped in a transaction — any failure rolls back cleanly.
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'one_league_per_user_v1' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                await client.query('BEGIN');
+                try {
+                    // Find users who are in more than one league
+                    const dupUsers = await client.query(`
+                        SELECT user_id
+                        FROM league_members
+                        GROUP BY user_id
+                        HAVING COUNT(*) > 1
+                    `);
+
+                    console.log(`[init-db] one-league migration: ${dupUsers.rows.length} user(s) in multiple leagues`);
+
+                    for (const { user_id } of dupUsers.rows) {
+                        // Pull all their memberships, joined to the league row so we can
+                        // see draft state.
+                        const memberships = await client.query(`
+                            SELECT lm.league_id, lm.joined_at,
+                                   l.draft_started, l.draft_completed
+                            FROM league_members lm
+                            JOIN leagues l ON lm.league_id = l.id
+                            WHERE lm.user_id = $1
+                            ORDER BY lm.joined_at DESC
+                        `, [user_id]);
+
+                        const rows = memberships.rows;
+                        // Pick keeper: prefer most-recently-joined of those with an active or completed draft
+                        const active = rows.filter(r => r.draft_started || r.draft_completed);
+                        const keeper = (active[0] || rows[0]).league_id;
+
+                        for (const r of rows) {
+                            if (r.league_id === keeper) continue;
+                            console.log(`[init-db] one-league migration: user ${user_id} removed from league ${r.league_id} (kept league ${keeper})`);
+                            await client.query('DELETE FROM draft_picks WHERE league_id = $1 AND user_id = $2', [r.league_id, user_id]);
+                            await client.query('DELETE FROM draft_sessions WHERE league_id = $1 AND user_id = $2', [r.league_id, user_id]);
+                            await client.query('DELETE FROM league_members WHERE league_id = $1 AND user_id = $2', [r.league_id, user_id]);
+                        }
+                    }
+
+                    // Now safe to add the constraint
+                    await client.query(`
+                        ALTER TABLE league_members
+                        ADD CONSTRAINT league_members_user_unique UNIQUE (user_id)
+                    `);
+
+                    await client.query(
+                        "INSERT INTO schema_migrations (migration_name) VALUES ('one_league_per_user_v1')"
+                    );
+                    await client.query('COMMIT');
+                    console.log('[init-db] Migration: one_league_per_user_v1 complete — UNIQUE constraint added');
+                } catch (txErr) {
+                    await client.query('ROLLBACK');
+                    throw txErr;
+                }
+            }
+        } catch (err) {
+            console.error('[init-db] one-league migration FAILED:', err.message);
+            // Re-throw so the outer catch exits the process — deploy fails fast
+            // rather than running with broken constraints.
+            throw err;
+        }
+
         client.release();
 
         console.log(`[init-db] Schema applied — ${warnings} warning(s).`);
