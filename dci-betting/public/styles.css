@@ -1232,14 +1232,16 @@ h3 {
   gap: var(--spacing-xl);
 }
 
+/* League standings cards — dark theme (matches draft.html / standings view) */
 .stat-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(20, 20, 20, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(6px);
 }
 
 .stat-card::before {
@@ -1249,7 +1251,7 @@ h3 {
   left: 0;
   right: 0;
   height: 4px;
-  background: var(--color-accent-gradient);
+  background: linear-gradient(135deg, #8fe3a8 0%, #4ade80 100%);
 }
 
 .stat-card .rank {
@@ -1259,28 +1261,36 @@ h3 {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(47, 143, 78, 0.12);
+  background: rgba(47, 143, 78, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: var(--color-accent-primary);
+  color: #7dd899;
 }
 
 .stat-card h3 {
   font-size: 1.25rem;
   margin-bottom: var(--spacing-md);
-  color: var(--color-text-primary);
+  color: #ffffff;
 }
 
 .stat-card .total-score {
   font-size: 2.5rem;
   font-weight: 800;
-  background: var(--color-accent-gradient);
+  background: linear-gradient(135deg, #8fe3a8 0%, #4ade80 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: var(--spacing-lg);
+}
+
+.stat-card p {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.stat-card.error p {
+  color: #fca5a5;
 }
 
 .score-breakdown {
@@ -1297,7 +1307,7 @@ h3 {
 
 .score-item .label {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: rgba(255, 255, 255, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1305,7 +1315,7 @@ h3 {
 .score-item .value {
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .tour-dates {
