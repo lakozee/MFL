@@ -1031,6 +1031,576 @@ async function initDb() {
             console.warn('[init-db] Migration warning (river city scores):', err.message.split('\n')[0]);
         }
 
+        // One-time migration: seed The Kiwanis Thunder of Drums (2026-07-07) scores.
+        // Qualifying breakdown for the corps competing here:
+        //   The Cavaliers  — seq 2 (River City Rhapsody)                          → not qualifying
+        //   Colts          — seq 3 (Nebraska, River City Rhapsody)                → qualifying
+        //   Blue Knights   — seq 4 (Rockies, Corps Encore, Nebraska)              → not qualifying
+        //   Madison Scouts — seq 2 (River City Rhapsody)                          → not qualifying
+        //   Genesis        — seq 4 (Rockies, Corps Encore, Nebraska)              → not qualifying
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'kiwanis_thunder_2026_scores' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                const comp = await client.query(
+                    "SELECT id FROM competitions WHERE name = 'The Kiwanis Thunder of Drums' AND season = 2026 LIMIT 1"
+                );
+                if (comp.rows.length > 0) {
+                    const competitionId = comp.rows[0].id;
+                    // [corps_name, brass, music_analysis, percussion, color_guard, ge1, ge2, visual_proficiency, visual_analysis]
+                    const kiwanisScores = [
+                        ['The Cavaliers',  15.60, 15.20, 16.40, 15.60, 15.60, 15.10, 15.90, 15.80],
+                        ['Colts',          14.30, 14.90, 15.60, 15.50, 15.10, 14.60, 15.20, 15.20],
+                        ['Blue Knights',   14.60, 15.30, 15.40, 14.50, 15.40, 14.10, 15.10, 15.10],
+                        ['Madison Scouts', 14.80, 14.60, 15.00, 14.90, 14.70, 14.30, 14.50, 14.80],
+                        ['Genesis',        13.50, 13.60, 14.20, 14.40, 13.30, 13.50, 13.10, 13.30],
+                    ];
+                    for (const [name, brass, ma, perc, cg, ge1, ge2, vp, va] of kiwanisScores) {
+                        const total = Math.round((brass + ma + perc + cg + ge1 + ge2 + vp + va) * 100) / 100;
+                        await client.query(
+                            `INSERT INTO competition_scores
+                               (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                                ge1, ge2, visual_proficiency, visual_analysis, total_score)
+                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                             ON CONFLICT (competition_id, corps_name) DO NOTHING`,
+                            [competitionId, name, brass, ma, perc, cg, ge1, ge2, vp, va, total]
+                        );
+                    }
+                    // Recalculate corps_stats from qualifying shows only — verbatim copy of
+                    // recalculateCorpsAverages() in server/routes/admin.js. Keep in sync if that changes.
+                    await client.query(`
+                        WITH ranked AS (
+                          SELECT
+                            cs.corps_name,
+                            cs.brass, cs.music_analysis, cs.percussion, cs.color_guard,
+                            cs.ge1, cs.ge2, cs.visual_proficiency, cs.visual_analysis,
+                            c.competition_type,
+                            c.name AS competition_name,
+                            ROW_NUMBER() OVER (
+                              PARTITION BY cs.corps_name ORDER BY c.date ASC
+                            ) AS comp_seq
+                          FROM competition_scores cs
+                          JOIN competitions c ON cs.competition_id = c.id
+                          WHERE c.season = 2026
+                        ),
+                        corps_with_regional_7th AS (
+                          SELECT corps_name FROM ranked
+                          WHERE comp_seq = 7
+                            AND (
+                              LOWER(competition_name) LIKE '%southwestern%'
+                           OR LOWER(competition_name) LIKE '%san antonio%'
+                           OR LOWER(competition_name) LIKE '%southeastern%'
+                           OR LOWER(competition_name) LIKE '%midwestern%'
+                           OR LOWER(competition_name) LIKE '%eastern classic%'
+                           OR LOWER(competition_name) LIKE '%allentown%'
+                            )
+                        ),
+                        qualifying AS (
+                          SELECT * FROM ranked
+                          WHERE competition_type = 'championship'
+                             OR comp_seq IN (1, 3, 5)
+                             OR (comp_seq = 7 AND corps_name NOT IN (SELECT corps_name FROM corps_with_regional_7th))
+                             OR (comp_seq = 6 AND corps_name IN (SELECT corps_name FROM corps_with_regional_7th))
+                        ),
+                        totals AS (
+                          SELECT
+                            corps_name,
+                            ROUND(SUM(brass)::numeric, 2)              AS sum_brass,
+                            ROUND(SUM(music_analysis)::numeric, 2)     AS sum_music_analysis,
+                            ROUND(SUM(percussion)::numeric, 2)         AS sum_percussion,
+                            ROUND(SUM(color_guard)::numeric, 2)        AS sum_color_guard,
+                            ROUND(SUM(ge1)::numeric, 2)                AS sum_ge1,
+                            ROUND(SUM(ge2)::numeric, 2)                AS sum_ge2,
+                            ROUND(SUM(visual_proficiency)::numeric, 2) AS sum_visual_proficiency,
+                            ROUND(SUM(visual_analysis)::numeric, 2)    AS sum_visual_analysis,
+                            COUNT(*)                                   AS qualifying_count
+                          FROM qualifying
+                          GROUP BY corps_name
+                        )
+                        UPDATE corps_stats cs_outer
+                        SET
+                          avg_brass              = t.sum_brass,
+                          avg_music_analysis     = t.sum_music_analysis,
+                          avg_percussion         = t.sum_percussion,
+                          avg_color_guard        = t.sum_color_guard,
+                          avg_ge1                = t.sum_ge1,
+                          avg_ge2                = t.sum_ge2,
+                          avg_visual_proficiency = t.sum_visual_proficiency,
+                          avg_visual_analysis    = t.sum_visual_analysis,
+                          total_score            = t.sum_brass + t.sum_music_analysis + t.sum_percussion + t.sum_color_guard
+                                                 + t.sum_ge1 + t.sum_ge2 + t.sum_visual_proficiency + t.sum_visual_analysis,
+                          competitions_count     = t.qualifying_count,
+                          updated_at             = NOW()
+                        FROM totals t
+                        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
+                    `);
+                    await client.query(
+                        "INSERT INTO schema_migrations (migration_name) VALUES ('kiwanis_thunder_2026_scores')"
+                    );
+                    console.log('[init-db] Migration: seeded The Kiwanis Thunder of Drums 2026 scores and recalculated corps stats');
+                } else {
+                    console.warn('[init-db] Migration: The Kiwanis Thunder of Drums 2026 not found yet — will retry next deploy');
+                }
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning (kiwanis scores):', err.message.split('\n')[0]);
+        }
+
+        // One-time migration: seed Drums Across the Smokies (2026-07-07) scores.
+        // Qualifying breakdown for the corps competing here:
+        //   Boston Crusaders  — seq 1 (no prior shows) → qualifying
+        //   Carolina Crown    — seq 1 (no prior shows) → qualifying
+        //   Spirit of Atlanta — seq 1 (no prior shows) → qualifying
+        //   Music City        — seq 1 (no prior shows) → qualifying
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'smokies_2026_scores' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                const comp = await client.query(
+                    "SELECT id FROM competitions WHERE name = 'Drums Across the Smokies' AND season = 2026 LIMIT 1"
+                );
+                if (comp.rows.length > 0) {
+                    const competitionId = comp.rows[0].id;
+                    // [corps_name, brass, music_analysis, percussion, color_guard, ge1, ge2, visual_proficiency, visual_analysis]
+                    const smokiesScores = [
+                        ['Boston Crusaders',  16.6, 16.6, 16.5, 16.6, 16.7, 16.7, 16.3, 16.7],
+                        ['Carolina Crown',    16.8, 16.8, 15.9, 16.7, 16.2, 16.4, 16.6, 16.2],
+                        ['Spirit of Atlanta', 14.1, 14.6, 15.3, 14.3, 14.4, 14.9, 14.1, 14.7],
+                        ['Music City',        13.0, 13.9, 14.4, 13.7, 13.9, 14.2, 13.1, 13.4],
+                    ];
+                    for (const [name, brass, ma, perc, cg, ge1, ge2, vp, va] of smokiesScores) {
+                        const total = Math.round((brass + ma + perc + cg + ge1 + ge2 + vp + va) * 100) / 100;
+                        await client.query(
+                            `INSERT INTO competition_scores
+                               (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                                ge1, ge2, visual_proficiency, visual_analysis, total_score)
+                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                             ON CONFLICT (competition_id, corps_name) DO NOTHING`,
+                            [competitionId, name, brass, ma, perc, cg, ge1, ge2, vp, va, total]
+                        );
+                    }
+                    // Recalculate corps_stats from qualifying shows only — verbatim copy of
+                    // recalculateCorpsAverages() in server/routes/admin.js. Keep in sync if that changes.
+                    await client.query(`
+                        WITH ranked AS (
+                          SELECT
+                            cs.corps_name,
+                            cs.brass, cs.music_analysis, cs.percussion, cs.color_guard,
+                            cs.ge1, cs.ge2, cs.visual_proficiency, cs.visual_analysis,
+                            c.competition_type,
+                            c.name AS competition_name,
+                            ROW_NUMBER() OVER (
+                              PARTITION BY cs.corps_name ORDER BY c.date ASC
+                            ) AS comp_seq
+                          FROM competition_scores cs
+                          JOIN competitions c ON cs.competition_id = c.id
+                          WHERE c.season = 2026
+                        ),
+                        corps_with_regional_7th AS (
+                          SELECT corps_name FROM ranked
+                          WHERE comp_seq = 7
+                            AND (
+                              LOWER(competition_name) LIKE '%southwestern%'
+                           OR LOWER(competition_name) LIKE '%san antonio%'
+                           OR LOWER(competition_name) LIKE '%southeastern%'
+                           OR LOWER(competition_name) LIKE '%midwestern%'
+                           OR LOWER(competition_name) LIKE '%eastern classic%'
+                           OR LOWER(competition_name) LIKE '%allentown%'
+                            )
+                        ),
+                        qualifying AS (
+                          SELECT * FROM ranked
+                          WHERE competition_type = 'championship'
+                             OR comp_seq IN (1, 3, 5)
+                             OR (comp_seq = 7 AND corps_name NOT IN (SELECT corps_name FROM corps_with_regional_7th))
+                             OR (comp_seq = 6 AND corps_name IN (SELECT corps_name FROM corps_with_regional_7th))
+                        ),
+                        totals AS (
+                          SELECT
+                            corps_name,
+                            ROUND(SUM(brass)::numeric, 2)              AS sum_brass,
+                            ROUND(SUM(music_analysis)::numeric, 2)     AS sum_music_analysis,
+                            ROUND(SUM(percussion)::numeric, 2)         AS sum_percussion,
+                            ROUND(SUM(color_guard)::numeric, 2)        AS sum_color_guard,
+                            ROUND(SUM(ge1)::numeric, 2)                AS sum_ge1,
+                            ROUND(SUM(ge2)::numeric, 2)                AS sum_ge2,
+                            ROUND(SUM(visual_proficiency)::numeric, 2) AS sum_visual_proficiency,
+                            ROUND(SUM(visual_analysis)::numeric, 2)    AS sum_visual_analysis,
+                            COUNT(*)                                   AS qualifying_count
+                          FROM qualifying
+                          GROUP BY corps_name
+                        )
+                        UPDATE corps_stats cs_outer
+                        SET
+                          avg_brass              = t.sum_brass,
+                          avg_music_analysis     = t.sum_music_analysis,
+                          avg_percussion         = t.sum_percussion,
+                          avg_color_guard        = t.sum_color_guard,
+                          avg_ge1                = t.sum_ge1,
+                          avg_ge2                = t.sum_ge2,
+                          avg_visual_proficiency = t.sum_visual_proficiency,
+                          avg_visual_analysis    = t.sum_visual_analysis,
+                          total_score            = t.sum_brass + t.sum_music_analysis + t.sum_percussion + t.sum_color_guard
+                                                 + t.sum_ge1 + t.sum_ge2 + t.sum_visual_proficiency + t.sum_visual_analysis,
+                          competitions_count     = t.qualifying_count,
+                          updated_at             = NOW()
+                        FROM totals t
+                        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
+                    `);
+                    await client.query(
+                        "INSERT INTO schema_migrations (migration_name) VALUES ('smokies_2026_scores')"
+                    );
+                    console.log('[init-db] Migration: seeded Drums Across the Smokies 2026 scores and recalculated corps stats');
+                } else {
+                    console.warn('[init-db] Migration: Drums Across the Smokies 2026 not found yet — will retry next deploy');
+                }
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning (smokies scores):', err.message.split('\n')[0]);
+        }
+
+        // One-time migration: seed Drums Across America (2026-07-08) scores.
+        // Qualifying breakdown for the corps competing here:
+        //   Boston Crusaders  — seq 2 (Smokies) → not qualifying
+        //   Spirit of Atlanta — seq 2 (Smokies) → not qualifying
+        //   Music City        — seq 2 (Smokies) → not qualifying
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'drums_across_america_2026_scores' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                const comp = await client.query(
+                    "SELECT id FROM competitions WHERE name = 'Drums Across America' AND season = 2026 LIMIT 1"
+                );
+                if (comp.rows.length > 0) {
+                    const competitionId = comp.rows[0].id;
+                    // [corps_name, brass, music_analysis, percussion, color_guard, ge1, ge2, visual_proficiency, visual_analysis]
+                    const daaScores = [
+                        ['Boston Crusaders',  16.8, 17.1, 16.3, 16.9, 16.9, 16.8, 16.6, 16.6],
+                        ['Spirit of Atlanta', 14.9, 15.0, 15.7, 14.4, 15.1, 15.0, 14.9, 15.0],
+                        ['Music City',        13.3, 14.0, 14.9, 13.9, 14.4, 14.3, 13.4, 13.8],
+                    ];
+                    for (const [name, brass, ma, perc, cg, ge1, ge2, vp, va] of daaScores) {
+                        const total = Math.round((brass + ma + perc + cg + ge1 + ge2 + vp + va) * 100) / 100;
+                        await client.query(
+                            `INSERT INTO competition_scores
+                               (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                                ge1, ge2, visual_proficiency, visual_analysis, total_score)
+                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                             ON CONFLICT (competition_id, corps_name) DO NOTHING`,
+                            [competitionId, name, brass, ma, perc, cg, ge1, ge2, vp, va, total]
+                        );
+                    }
+                    // Recalculate corps_stats from qualifying shows only — verbatim copy of
+                    // recalculateCorpsAverages() in server/routes/admin.js. Keep in sync if that changes.
+                    await client.query(`
+                        WITH ranked AS (
+                          SELECT
+                            cs.corps_name,
+                            cs.brass, cs.music_analysis, cs.percussion, cs.color_guard,
+                            cs.ge1, cs.ge2, cs.visual_proficiency, cs.visual_analysis,
+                            c.competition_type,
+                            c.name AS competition_name,
+                            ROW_NUMBER() OVER (
+                              PARTITION BY cs.corps_name ORDER BY c.date ASC
+                            ) AS comp_seq
+                          FROM competition_scores cs
+                          JOIN competitions c ON cs.competition_id = c.id
+                          WHERE c.season = 2026
+                        ),
+                        corps_with_regional_7th AS (
+                          SELECT corps_name FROM ranked
+                          WHERE comp_seq = 7
+                            AND (
+                              LOWER(competition_name) LIKE '%southwestern%'
+                           OR LOWER(competition_name) LIKE '%san antonio%'
+                           OR LOWER(competition_name) LIKE '%southeastern%'
+                           OR LOWER(competition_name) LIKE '%midwestern%'
+                           OR LOWER(competition_name) LIKE '%eastern classic%'
+                           OR LOWER(competition_name) LIKE '%allentown%'
+                            )
+                        ),
+                        qualifying AS (
+                          SELECT * FROM ranked
+                          WHERE competition_type = 'championship'
+                             OR comp_seq IN (1, 3, 5)
+                             OR (comp_seq = 7 AND corps_name NOT IN (SELECT corps_name FROM corps_with_regional_7th))
+                             OR (comp_seq = 6 AND corps_name IN (SELECT corps_name FROM corps_with_regional_7th))
+                        ),
+                        totals AS (
+                          SELECT
+                            corps_name,
+                            ROUND(SUM(brass)::numeric, 2)              AS sum_brass,
+                            ROUND(SUM(music_analysis)::numeric, 2)     AS sum_music_analysis,
+                            ROUND(SUM(percussion)::numeric, 2)         AS sum_percussion,
+                            ROUND(SUM(color_guard)::numeric, 2)        AS sum_color_guard,
+                            ROUND(SUM(ge1)::numeric, 2)                AS sum_ge1,
+                            ROUND(SUM(ge2)::numeric, 2)                AS sum_ge2,
+                            ROUND(SUM(visual_proficiency)::numeric, 2) AS sum_visual_proficiency,
+                            ROUND(SUM(visual_analysis)::numeric, 2)    AS sum_visual_analysis,
+                            COUNT(*)                                   AS qualifying_count
+                          FROM qualifying
+                          GROUP BY corps_name
+                        )
+                        UPDATE corps_stats cs_outer
+                        SET
+                          avg_brass              = t.sum_brass,
+                          avg_music_analysis     = t.sum_music_analysis,
+                          avg_percussion         = t.sum_percussion,
+                          avg_color_guard        = t.sum_color_guard,
+                          avg_ge1                = t.sum_ge1,
+                          avg_ge2                = t.sum_ge2,
+                          avg_visual_proficiency = t.sum_visual_proficiency,
+                          avg_visual_analysis    = t.sum_visual_analysis,
+                          total_score            = t.sum_brass + t.sum_music_analysis + t.sum_percussion + t.sum_color_guard
+                                                 + t.sum_ge1 + t.sum_ge2 + t.sum_visual_proficiency + t.sum_visual_analysis,
+                          competitions_count     = t.qualifying_count,
+                          updated_at             = NOW()
+                        FROM totals t
+                        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
+                    `);
+                    await client.query(
+                        "INSERT INTO schema_migrations (migration_name) VALUES ('drums_across_america_2026_scores')"
+                    );
+                    console.log('[init-db] Migration: seeded Drums Across America 2026 scores and recalculated corps stats');
+                } else {
+                    console.warn('[init-db] Migration: Drums Across America 2026 not found yet — will retry next deploy');
+                }
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning (drums across america scores):', err.message.split('\n')[0]);
+        }
+
+        // One-time migration: seed Gold Showcase (2026-07-09) scores.
+        // Qualifying breakdown for the corps competing here:
+        //   Bluecoats            — seq 3 (Cap Classic, DCI West)                       → qualifying
+        //   Blue Devils          — seq 4 (Rockies, Corps Encore, DCI West)             → not qualifying
+        //   Santa Clara Vanguard — seq 5 (NW Seattle, NW Portland, Cap Cl., DCI West)  → qualifying
+        //   Pacific Crest        — seq 1 (no prior shows)                              → qualifying
+        //   The Academy          — seq 3 (Cap Classic, DCI West)                       → qualifying
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'gold_showcase_2026_scores' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                const comp = await client.query(
+                    "SELECT id FROM competitions WHERE name = 'Gold Showcase' AND season = 2026 LIMIT 1"
+                );
+                if (comp.rows.length > 0) {
+                    const competitionId = comp.rows[0].id;
+                    // [corps_name, brass, music_analysis, percussion, color_guard, ge1, ge2, visual_proficiency, visual_analysis]
+                    const goldShowcaseScores = [
+                        ['Bluecoats',            17.4, 16.9, 16.8, 17.2, 17.1, 17.0, 17.1, 17.0],
+                        ['Blue Devils',          17.3, 16.6, 16.7, 16.7, 17.0, 16.9, 16.7, 16.8],
+                        ['Santa Clara Vanguard', 16.6, 16.4, 17.0, 16.6, 16.6, 16.5, 16.6, 16.5],
+                        ['Pacific Crest',        14.1, 14.5, 14.4, 14.5, 14.4, 14.3, 14.1, 14.6],
+                        ['The Academy',          14.2, 14.4, 14.3, 14.3, 14.6, 14.5, 13.8, 14.1],
+                    ];
+                    for (const [name, brass, ma, perc, cg, ge1, ge2, vp, va] of goldShowcaseScores) {
+                        const total = Math.round((brass + ma + perc + cg + ge1 + ge2 + vp + va) * 100) / 100;
+                        await client.query(
+                            `INSERT INTO competition_scores
+                               (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                                ge1, ge2, visual_proficiency, visual_analysis, total_score)
+                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                             ON CONFLICT (competition_id, corps_name) DO NOTHING`,
+                            [competitionId, name, brass, ma, perc, cg, ge1, ge2, vp, va, total]
+                        );
+                    }
+                    // Recalculate corps_stats from qualifying shows only — verbatim copy of
+                    // recalculateCorpsAverages() in server/routes/admin.js. Keep in sync if that changes.
+                    await client.query(`
+                        WITH ranked AS (
+                          SELECT
+                            cs.corps_name,
+                            cs.brass, cs.music_analysis, cs.percussion, cs.color_guard,
+                            cs.ge1, cs.ge2, cs.visual_proficiency, cs.visual_analysis,
+                            c.competition_type,
+                            c.name AS competition_name,
+                            ROW_NUMBER() OVER (
+                              PARTITION BY cs.corps_name ORDER BY c.date ASC
+                            ) AS comp_seq
+                          FROM competition_scores cs
+                          JOIN competitions c ON cs.competition_id = c.id
+                          WHERE c.season = 2026
+                        ),
+                        corps_with_regional_7th AS (
+                          SELECT corps_name FROM ranked
+                          WHERE comp_seq = 7
+                            AND (
+                              LOWER(competition_name) LIKE '%southwestern%'
+                           OR LOWER(competition_name) LIKE '%san antonio%'
+                           OR LOWER(competition_name) LIKE '%southeastern%'
+                           OR LOWER(competition_name) LIKE '%midwestern%'
+                           OR LOWER(competition_name) LIKE '%eastern classic%'
+                           OR LOWER(competition_name) LIKE '%allentown%'
+                            )
+                        ),
+                        qualifying AS (
+                          SELECT * FROM ranked
+                          WHERE competition_type = 'championship'
+                             OR comp_seq IN (1, 3, 5)
+                             OR (comp_seq = 7 AND corps_name NOT IN (SELECT corps_name FROM corps_with_regional_7th))
+                             OR (comp_seq = 6 AND corps_name IN (SELECT corps_name FROM corps_with_regional_7th))
+                        ),
+                        totals AS (
+                          SELECT
+                            corps_name,
+                            ROUND(SUM(brass)::numeric, 2)              AS sum_brass,
+                            ROUND(SUM(music_analysis)::numeric, 2)     AS sum_music_analysis,
+                            ROUND(SUM(percussion)::numeric, 2)         AS sum_percussion,
+                            ROUND(SUM(color_guard)::numeric, 2)        AS sum_color_guard,
+                            ROUND(SUM(ge1)::numeric, 2)                AS sum_ge1,
+                            ROUND(SUM(ge2)::numeric, 2)                AS sum_ge2,
+                            ROUND(SUM(visual_proficiency)::numeric, 2) AS sum_visual_proficiency,
+                            ROUND(SUM(visual_analysis)::numeric, 2)    AS sum_visual_analysis,
+                            COUNT(*)                                   AS qualifying_count
+                          FROM qualifying
+                          GROUP BY corps_name
+                        )
+                        UPDATE corps_stats cs_outer
+                        SET
+                          avg_brass              = t.sum_brass,
+                          avg_music_analysis     = t.sum_music_analysis,
+                          avg_percussion         = t.sum_percussion,
+                          avg_color_guard        = t.sum_color_guard,
+                          avg_ge1                = t.sum_ge1,
+                          avg_ge2                = t.sum_ge2,
+                          avg_visual_proficiency = t.sum_visual_proficiency,
+                          avg_visual_analysis    = t.sum_visual_analysis,
+                          total_score            = t.sum_brass + t.sum_music_analysis + t.sum_percussion + t.sum_color_guard
+                                                 + t.sum_ge1 + t.sum_ge2 + t.sum_visual_proficiency + t.sum_visual_analysis,
+                          competitions_count     = t.qualifying_count,
+                          updated_at             = NOW()
+                        FROM totals t
+                        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
+                    `);
+                    await client.query(
+                        "INSERT INTO schema_migrations (migration_name) VALUES ('gold_showcase_2026_scores')"
+                    );
+                    console.log('[init-db] Migration: seeded Gold Showcase 2026 scores and recalculated corps stats');
+                } else {
+                    console.warn('[init-db] Migration: Gold Showcase 2026 not found yet — will retry next deploy');
+                }
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning (gold showcase scores):', err.message.split('\n')[0]);
+        }
+
+        // One-time migration: seed DCI Northern Alabama (2026-07-09) scores.
+        // Qualifying breakdown for the corps competing here:
+        //   Boston Crusaders  — seq 3 (Smokies, Drums Across America) → qualifying
+        //   Spirit of Atlanta — seq 3 (Smokies, Drums Across America) → qualifying
+        //   Music City        — seq 3 (Smokies, Drums Across America) → qualifying
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'dci_northern_alabama_2026_scores' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                const comp = await client.query(
+                    "SELECT id FROM competitions WHERE name = 'DCI Northern Alabama' AND season = 2026 LIMIT 1"
+                );
+                if (comp.rows.length > 0) {
+                    const competitionId = comp.rows[0].id;
+                    // [corps_name, brass, music_analysis, percussion, color_guard, ge1, ge2, visual_proficiency, visual_analysis]
+                    const nAlabamaScores = [
+                        ['Boston Crusaders',  16.8, 17.0, 16.8, 16.8, 17.0, 16.9, 16.9, 17.0],
+                        ['Spirit of Atlanta', 15.1, 14.9, 16.0, 14.7, 15.3, 15.4, 15.2, 15.3],
+                        ['Music City',        14.4, 14.3, 15.5, 14.0, 14.4, 14.2, 14.1, 13.6],
+                    ];
+                    for (const [name, brass, ma, perc, cg, ge1, ge2, vp, va] of nAlabamaScores) {
+                        const total = Math.round((brass + ma + perc + cg + ge1 + ge2 + vp + va) * 100) / 100;
+                        await client.query(
+                            `INSERT INTO competition_scores
+                               (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                                ge1, ge2, visual_proficiency, visual_analysis, total_score)
+                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                             ON CONFLICT (competition_id, corps_name) DO NOTHING`,
+                            [competitionId, name, brass, ma, perc, cg, ge1, ge2, vp, va, total]
+                        );
+                    }
+                    // Recalculate corps_stats from qualifying shows only — verbatim copy of
+                    // recalculateCorpsAverages() in server/routes/admin.js. Keep in sync if that changes.
+                    await client.query(`
+                        WITH ranked AS (
+                          SELECT
+                            cs.corps_name,
+                            cs.brass, cs.music_analysis, cs.percussion, cs.color_guard,
+                            cs.ge1, cs.ge2, cs.visual_proficiency, cs.visual_analysis,
+                            c.competition_type,
+                            c.name AS competition_name,
+                            ROW_NUMBER() OVER (
+                              PARTITION BY cs.corps_name ORDER BY c.date ASC
+                            ) AS comp_seq
+                          FROM competition_scores cs
+                          JOIN competitions c ON cs.competition_id = c.id
+                          WHERE c.season = 2026
+                        ),
+                        corps_with_regional_7th AS (
+                          SELECT corps_name FROM ranked
+                          WHERE comp_seq = 7
+                            AND (
+                              LOWER(competition_name) LIKE '%southwestern%'
+                           OR LOWER(competition_name) LIKE '%san antonio%'
+                           OR LOWER(competition_name) LIKE '%southeastern%'
+                           OR LOWER(competition_name) LIKE '%midwestern%'
+                           OR LOWER(competition_name) LIKE '%eastern classic%'
+                           OR LOWER(competition_name) LIKE '%allentown%'
+                            )
+                        ),
+                        qualifying AS (
+                          SELECT * FROM ranked
+                          WHERE competition_type = 'championship'
+                             OR comp_seq IN (1, 3, 5)
+                             OR (comp_seq = 7 AND corps_name NOT IN (SELECT corps_name FROM corps_with_regional_7th))
+                             OR (comp_seq = 6 AND corps_name IN (SELECT corps_name FROM corps_with_regional_7th))
+                        ),
+                        totals AS (
+                          SELECT
+                            corps_name,
+                            ROUND(SUM(brass)::numeric, 2)              AS sum_brass,
+                            ROUND(SUM(music_analysis)::numeric, 2)     AS sum_music_analysis,
+                            ROUND(SUM(percussion)::numeric, 2)         AS sum_percussion,
+                            ROUND(SUM(color_guard)::numeric, 2)        AS sum_color_guard,
+                            ROUND(SUM(ge1)::numeric, 2)                AS sum_ge1,
+                            ROUND(SUM(ge2)::numeric, 2)                AS sum_ge2,
+                            ROUND(SUM(visual_proficiency)::numeric, 2) AS sum_visual_proficiency,
+                            ROUND(SUM(visual_analysis)::numeric, 2)    AS sum_visual_analysis,
+                            COUNT(*)                                   AS qualifying_count
+                          FROM qualifying
+                          GROUP BY corps_name
+                        )
+                        UPDATE corps_stats cs_outer
+                        SET
+                          avg_brass              = t.sum_brass,
+                          avg_music_analysis     = t.sum_music_analysis,
+                          avg_percussion         = t.sum_percussion,
+                          avg_color_guard        = t.sum_color_guard,
+                          avg_ge1                = t.sum_ge1,
+                          avg_ge2                = t.sum_ge2,
+                          avg_visual_proficiency = t.sum_visual_proficiency,
+                          avg_visual_analysis    = t.sum_visual_analysis,
+                          total_score            = t.sum_brass + t.sum_music_analysis + t.sum_percussion + t.sum_color_guard
+                                                 + t.sum_ge1 + t.sum_ge2 + t.sum_visual_proficiency + t.sum_visual_analysis,
+                          competitions_count     = t.qualifying_count,
+                          updated_at             = NOW()
+                        FROM totals t
+                        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
+                    `);
+                    await client.query(
+                        "INSERT INTO schema_migrations (migration_name) VALUES ('dci_northern_alabama_2026_scores')"
+                    );
+                    console.log('[init-db] Migration: seeded DCI Northern Alabama 2026 scores and recalculated corps stats');
+                } else {
+                    console.warn('[init-db] Migration: DCI Northern Alabama 2026 not found yet — will retry next deploy');
+                }
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning (dci northern alabama scores):', err.message.split('\n')[0]);
+        }
+
         // One-time migration: enforce one-league-per-user.
         // Removes duplicate league memberships then adds a UNIQUE constraint.
         // Hybrid rule for picking which league to keep:
