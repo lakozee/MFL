@@ -9,6 +9,11 @@ class APIClient {
     async request(endpoint, options = {}) {
         const url = `${API_BASE}/api${endpoint}`;
 
+        // The auth endpoints (login/register/logout) legitimately return 401 to
+        // signal "invalid email or password" — those must NOT trigger the
+        // session-expiry redirect below; their real message has to reach the form.
+        const isAuthEndpoint = endpoint.startsWith('/auth/');
+
         const config = {
             ...options,
             credentials: 'include', // Send cookies
@@ -21,8 +26,10 @@ class APIClient {
         try {
             const response = await fetch(url, config);
 
-            // Handle 401 Unauthorized - redirect to login
-            if (response.status === 401) {
+            // A 401 on a protected endpoint means the session expired —
+            // bounce to login. Auth endpoints fall through so their own
+            // error message ("Invalid email or password") is surfaced.
+            if (response.status === 401 && !isAuthEndpoint) {
                 window.location.href = '/auth';
                 throw new Error('Authentication required');
             }
