@@ -108,6 +108,7 @@ router.post('/login', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
+            console.warn('[auth-debug] login fail: no account for', email.toLowerCase());
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
@@ -117,8 +118,11 @@ router.post('/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.password_hash);
 
         if (!validPassword) {
+            console.warn('[auth-debug] login fail: wrong password for user', user.id);
             return res.status(401).json({ error: 'Invalid email or password' });
         }
+
+        console.log('[auth-debug] login ok: user', user.id, '- setting cookie (secure:', process.env.NODE_ENV === 'production', ')');
 
         // Update last login
         await db.query(

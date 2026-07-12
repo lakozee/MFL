@@ -46,6 +46,7 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     handler: (req, res) => {
+        console.warn('[auth-debug] auth rate limit hit from IP', req.ip, 'on', req.originalUrl);
         res.status(429).json({ error: 'Too many login attempts, please try again later.' });
     }
 });
