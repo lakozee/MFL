@@ -177,6 +177,9 @@ CREATE TABLE IF NOT EXISTS competition_scores (
     visual_proficiency DECIMAL(5,2),
     visual_analysis DECIMAL(5,2),
     total_score DECIMAL(6,2),
+    -- Manual admin override: when TRUE this row always counts as a qualifying
+    -- show in the corps_stats recalc, regardless of its ordinal position.
+    force_qualifying BOOLEAN DEFAULT FALSE,
     UNIQUE(competition_id, corps_name)
 );
 
@@ -189,6 +192,7 @@ ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS ge1 DECIMAL(5,2);
 ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS ge2 DECIMAL(5,2);
 ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS visual_proficiency DECIMAL(5,2);
 ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS visual_analysis DECIMAL(5,2);
+ALTER TABLE competition_scores ADD COLUMN IF NOT EXISTS force_qualifying BOOLEAN DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_competition_scores_competition ON competition_scores(competition_id);
 CREATE INDEX IF NOT EXISTS idx_competition_scores_corps ON competition_scores(corps_name);
@@ -230,6 +234,7 @@ INSERT INTO competitions (name, date, location, season, competition_type) VALUES
     ('DCI New Mexico',                        '2026-07-14', 'Albuquerque, NM',    2026, 'regular'),
     ('DCI Central Texas',                     '2026-07-16', 'Killeen, TX',        2026, 'regular'),
     ('DCI Denton',                            '2026-07-16', 'Denton, TX',         2026, 'regular'),
+    ('DCI Houston',                           '2026-07-17', 'Houston, TX',        2026, 'regular'),
     ('DCI Southwestern Championship',         '2026-07-18', 'San Antonio, TX',    2026, 'championship'),
     ('DCI Southeastern Championship',         '2026-07-25', 'Atlanta, GA',        2026, 'championship'),
     ('DCI Midwestern Championship',           '2026-07-25', 'DeKalb, IL',         2026, 'championship'),
