@@ -3904,6 +3904,117 @@ async function initDb() {
             console.warn('[init-db] Migration warning (semifinals scores):', err.message.split('\n')[0]);
         }
 
+        // One-time migration: seed DCI World Championship Finals (2026) scores.
+        // A championship, so it qualifies automatically for every corps that competed.
+        // Finals is the top 12 only — the other 8 World Class corps did not advance,
+        // so they stay at their Semifinals count (this is intended).
+        // Captions with two judges (GE1, GE2, Music Analysis) are the average of both
+        // judges' TOT, rounded to 2 decimals. Recalc is the current simplified rule
+        // (1st/3rd/5th/7th + championship + force_qualifying); no regional-7th.
+        try {
+            const migCheck = await client.query(
+                "SELECT 1 FROM schema_migrations WHERE migration_name = 'dci_finals_2026_scores' LIMIT 1"
+            );
+            if (migCheck.rows.length === 0) {
+                const comp = await client.query(
+                    "SELECT id FROM competitions WHERE name = 'DCI World Championship Finals' AND season = 2026 LIMIT 1"
+                );
+                if (comp.rows.length > 0) {
+                    const competitionId = comp.rows[0].id;
+                    // [corps_name, brass, music_analysis, percussion, color_guard, ge1, ge2, visual_proficiency, visual_analysis]
+                    const finalsScores = [
+                        ['Bluecoats',            19.40, 19.90, 19.80, 19.80, 19.90, 19.95, 19.90, 19.70],
+                        ['Blue Devils',          19.50, 19.45, 19.35, 19.70, 19.45, 19.45, 19.60, 19.60],
+                        ['Carolina Crown',       19.45, 19.63, 18.45, 19.10, 19.50, 19.65, 19.65, 19.50],
+                        ['Boston Crusaders',     19.05, 19.25, 19.15, 19.30, 18.98, 19.18, 19.30, 19.00],
+                        ['Santa Clara Vanguard', 18.90, 18.95, 19.50, 18.70, 19.05, 19.00, 18.80, 19.10],
+                        ['Blue Stars',           19.00, 18.68, 18.50, 18.80, 18.75, 19.05, 18.90, 18.80],
+                        ['Phantom Regiment',     18.40, 18.55, 18.60, 18.30, 18.45, 18.68, 18.60, 18.50],
+                        ['The Cavaliers',        18.60, 18.30, 19.05, 18.00, 18.43, 18.48, 18.30, 18.30],
+                        ['Colts',                17.90, 18.10, 18.25, 17.60, 17.90, 18.25, 18.10, 18.00],
+                        ['Spirit of Atlanta',    18.00, 17.78, 18.20, 17.70, 17.10, 18.05, 17.70, 17.50],
+                        ['Troopers',             17.60, 17.60, 18.05, 17.40, 16.70, 17.53, 17.40, 17.40],
+                        ['Blue Knights',         17.20, 17.35, 17.50, 16.90, 16.85, 17.60, 17.30, 17.20],
+                    ];
+                    for (const [name, brass, ma, perc, cg, ge1, ge2, vp, va] of finalsScores) {
+                        const total = Math.round((brass + ma + perc + cg + ge1 + ge2 + vp + va) * 100) / 100;
+                        await client.query(
+                            `INSERT INTO competition_scores
+                               (competition_id, corps_name, brass, music_analysis, percussion, color_guard,
+                                ge1, ge2, visual_proficiency, visual_analysis, total_score)
+                             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                             ON CONFLICT (competition_id, corps_name) DO NOTHING`,
+                            [competitionId, name, brass, ma, perc, cg, ge1, ge2, vp, va, total]
+                        );
+                    }
+                    // Recalculate corps_stats — simplified qualifying rule (no regional-7th),
+                    // force_qualifying-aware. Mirrors recalculateCorpsAverages() in
+                    // server/routes/admin.js.
+                    await client.query(`
+                        WITH ranked AS (
+                          SELECT
+                            cs.corps_name,
+                            cs.brass, cs.music_analysis, cs.percussion, cs.color_guard,
+                            cs.ge1, cs.ge2, cs.visual_proficiency, cs.visual_analysis,
+                            cs.force_qualifying,
+                            c.competition_type,
+                            ROW_NUMBER() OVER (
+                              PARTITION BY cs.corps_name ORDER BY c.date ASC
+                            ) AS comp_seq
+                          FROM competition_scores cs
+                          JOIN competitions c ON cs.competition_id = c.id
+                          WHERE c.season = 2026
+                        ),
+                        qualifying AS (
+                          SELECT * FROM ranked
+                          WHERE competition_type = 'championship'
+                             OR force_qualifying
+                             OR comp_seq IN (1, 3, 5, 7)
+                        ),
+                        totals AS (
+                          SELECT
+                            corps_name,
+                            ROUND(SUM(brass)::numeric, 2)              AS sum_brass,
+                            ROUND(SUM(music_analysis)::numeric, 2)     AS sum_music_analysis,
+                            ROUND(SUM(percussion)::numeric, 2)         AS sum_percussion,
+                            ROUND(SUM(color_guard)::numeric, 2)        AS sum_color_guard,
+                            ROUND(SUM(ge1)::numeric, 2)                AS sum_ge1,
+                            ROUND(SUM(ge2)::numeric, 2)                AS sum_ge2,
+                            ROUND(SUM(visual_proficiency)::numeric, 2) AS sum_visual_proficiency,
+                            ROUND(SUM(visual_analysis)::numeric, 2)    AS sum_visual_analysis,
+                            COUNT(*)                                   AS qualifying_count
+                          FROM qualifying
+                          GROUP BY corps_name
+                        )
+                        UPDATE corps_stats cs_outer
+                        SET
+                          avg_brass              = t.sum_brass,
+                          avg_music_analysis     = t.sum_music_analysis,
+                          avg_percussion         = t.sum_percussion,
+                          avg_color_guard        = t.sum_color_guard,
+                          avg_ge1                = t.sum_ge1,
+                          avg_ge2                = t.sum_ge2,
+                          avg_visual_proficiency = t.sum_visual_proficiency,
+                          avg_visual_analysis    = t.sum_visual_analysis,
+                          total_score            = t.sum_brass + t.sum_music_analysis + t.sum_percussion + t.sum_color_guard
+                                                 + t.sum_ge1 + t.sum_ge2 + t.sum_visual_proficiency + t.sum_visual_analysis,
+                          competitions_count     = t.qualifying_count,
+                          updated_at             = NOW()
+                        FROM totals t
+                        WHERE cs_outer.corps_name = t.corps_name AND cs_outer.season = 2026
+                    `);
+                    await client.query(
+                        "INSERT INTO schema_migrations (migration_name) VALUES ('dci_finals_2026_scores')"
+                    );
+                    console.log('[init-db] Migration: seeded DCI World Championship Finals 2026 scores and recalculated corps stats');
+                } else {
+                    console.warn('[init-db] Migration: DCI World Championship Finals 2026 not found yet — will retry next deploy');
+                }
+            }
+        } catch (err) {
+            console.warn('[init-db] Migration warning (finals scores):', err.message.split('\n')[0]);
+        }
+
         // One-time migration: enforce one-league-per-user.
         // Removes duplicate league memberships then adds a UNIQUE constraint.
         // Hybrid rule for picking which league to keep:
