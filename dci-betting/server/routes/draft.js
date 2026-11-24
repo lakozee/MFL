@@ -3,57 +3,10 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const db = require('../../database/db');
 
-// Record a draft pick
-router.post('/pick', authenticateToken, async (req, res) => {
-    try {
-        const { leagueId, captionId, sectionType, pickNumber } = req.body;
-        const userId = req.user.userId;
-
-        // Verify user is member of league
-        const memberCheck = await db.query(
-            'SELECT 1 FROM league_members WHERE league_id = $1 AND user_id = $2',
-            [leagueId, userId]
-        );
-
-        if (memberCheck.rows.length === 0) {
-            return res.status(403).json({ error: 'Not a member of this league' });
-        }
-
-        // Check if caption already drafted
-        const existingPick = await db.query(
-            'SELECT 1 FROM draft_picks WHERE league_id = $1 AND caption_id = $2',
-            [leagueId, captionId]
-        );
-
-        if (existingPick.rows.length > 0) {
-            return res.status(400).json({ error: 'Caption already drafted' });
-        }
-
-        // Check player doesn't already have a pick for this section
-        const sectionCheck = await db.query(
-            'SELECT 1 FROM draft_picks WHERE league_id = $1 AND user_id = $2 AND section_type = $3',
-            [leagueId, userId, sectionType]
-        );
-
-        if (sectionCheck.rows.length > 0) {
-            return res.status(400).json({ error: `You already have a pick for ${sectionType}` });
-        }
-
-        // Record pick
-        const result = await db.query(
-            'INSERT INTO draft_picks (league_id, user_id, caption_id, section_type, pick_number) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [leagueId, userId, captionId, sectionType, pickNumber]
-        );
-
-        res.json({
-            message: 'Pick recorded',
-            pick: result.rows[0]
-        });
-    } catch (error) {
-        console.error('Draft pick error:', error);
-        res.status(500).json({ error: 'Failed to record pick' });
-    }
-});
+// Draft picks are made only through the live socket draft
+// (server/socket/draftSocket.js 'make-pick'), which enforces turn order and
+// draft state. The old REST POST /pick route was removed because it skipped
+// those checks.
 
 // Get all draft picks for a league
 router.get('/:leagueId/picks', authenticateToken, async (req, res) => {

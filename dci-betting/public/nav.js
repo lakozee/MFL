@@ -88,16 +88,24 @@ class NavigationManager {
       }
       headerContent.appendChild(appNav);
 
-      // Avatar
-      const avatarUrl = (this.currentUser.profile_picture_url && this.currentUser.profile_picture_url !== '/default-avatar.png')
-        ? this.currentUser.profile_picture_url
-        : generateDefaultAvatar(this.currentUser.username, 64);
+      // Avatar (escape user-controlled values; nav.js loads on pages that may
+      // not include /utils/escape.js, so keep a local copy of the helpers)
+      const esc = (v) => String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const rawPic = typeof this.currentUser.profile_picture_url === 'string'
+        ? this.currentUser.profile_picture_url.trim() : '';
+      const picIsSafe = /^https?:\/\//i.test(rawPic) || /^\/(?!\/)/.test(rawPic) ||
+        /^data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]/i.test(rawPic);
+      const avatarUrl = esc((picIsSafe && rawPic !== '/default-avatar.png')
+        ? rawPic
+        : generateDefaultAvatar(this.currentUser.username, 64));
 
       authSection.innerHTML = `
         <div class="user-profile-dropdown">
           <button class="profile-toggle" id="profileToggle">
             <img src="${avatarUrl}" alt="Profile" class="profile-avatar">
-            <span class="profile-email">${this.currentUser.username}</span>
+            <span class="profile-email">${esc(this.currentUser.username)}</span>
             <svg class="dropdown-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2"/>
             </svg>
