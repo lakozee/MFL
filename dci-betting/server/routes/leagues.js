@@ -264,7 +264,7 @@ router.get('/:id/members', authenticateToken, async (req, res) => {
         }
 
         const result = await db.query(`
-      SELECT lm.*, u.username, u.email, u.profile_picture_url
+      SELECT lm.*, u.username, u.profile_picture_url
       FROM league_members lm
       JOIN users u ON lm.user_id = u.id
       WHERE lm.league_id = $1

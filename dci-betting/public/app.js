@@ -442,7 +442,7 @@ function updateLeagueInfoPanel() {
                 <div class="player-card filled">
                     <div class="player-info">
                         <div class="player-number">#${index + 1}</div>
-                        <div class="player-name">${team.name}</div>
+                        <div class="player-name">${escHtml(team.name)}</div>
                     </div>
                     <div class="player-status">✓ Joined</div>
                 </div>
@@ -546,6 +546,11 @@ function generateDraftOrder(playerCount) {
 
 // ===== DRAFT FUNCTIONS =====
 function startDraft() {
+    // The draft runs in the live draft room (/league/:id).
+    if (state.league && state.league.id) {
+        window.location.href = `/league/${state.league.id}`;
+        return;
+    }
     // Check if league has enough players (4-12)
     const currentMembers = state.teams.length;
     if (currentMembers < 4) {
@@ -564,61 +569,12 @@ function startDraft() {
 }
 
 async function draftCaption(captionId) {
-    const currentTeamId = getCurrentDraftTeam();
-    if (!currentTeamId) {
-        alert('Draft is complete!');
-        return;
-    }
-
-    const caption = getCaption(captionId);
-    const team = getTeam(currentTeamId);
-
-    if (!caption || caption.owner !== null) {
-        alert('This caption is not available');
-        return;
-    }
-
-    const sectionKey = getSectionKey(caption.section);
-
-    // Check if team already has this section filled
-    if (team.roster[sectionKey] !== null) {
-        alert(`${team.name} already has a ${caption.section} caption`);
-        return;
-    }
-
-    try {
-        // Save draft pick to backend
-        await api.request('/draft/pick', {
-            method: 'POST',
-            body: JSON.stringify({
-                leagueId: state.league.id,
-                captionId: captionId,
-                sectionType: caption.section,
-                pickNumber: state.currentDraftPick
-            })
-        });
-
-        // Update local state
-        caption.owner = currentTeamId;
-        team.roster[sectionKey] = captionId;
-        state.currentDraftPick++;
-
-        // Auto-draft for other players (when multiplayer is implemented)
-        if (state.currentDraftPick < state.draftOrder.length) {
-            const nextTeamId = getCurrentDraftTeam();
-            if (nextTeamId !== state.currentUserId) {
-                // For now, just wait for next player's turn
-                // In future, implement real-time multiplayer or AI opponents
-            }
-        } else {
-            state.draftInProgress = false;
-            alert('Draft complete! Check out your team and the standings!');
-        }
-
-        closeCaptionModal();
-        renderDraftView();
-    } catch (error) {
-        alert('Failed to save draft pick: ' + error.message);
+    // Picks are made in the live draft room, which enforces turn order on the
+    // server. Send the player there instead of saving a pick from this page.
+    if (state.league && state.league.id) {
+        window.location.href = `/league/${state.league.id}`;
+    } else {
+        alert('Open your league to join the live draft.');
     }
 }
 
@@ -700,7 +656,7 @@ function renderDraftView() {
             const isYourTurn = currentTeamId === state.currentUserId;
             elements.draftStatus.innerHTML = `
         <h3>Pick ${pickNumber} of ${state.draftOrder.length}</h3>
-        <p class="draft-turn ${isYourTurn ? 'your-turn' : ''}">${isYourTurn ? "🎯 YOUR TURN!" : `${currentTeam.name} is picking...`}</p>
+        <p class="draft-turn ${isYourTurn ? 'your-turn' : ''}">${isYourTurn ? "🎯 YOUR TURN!" : `${escHtml(currentTeam.name)} is picking...`}</p>
       `;
         } else {
             elements.draftStatus.innerHTML = '<h3>Draft Complete!</h3><p>All teams have filled their rosters.</p>';
@@ -821,7 +777,7 @@ function renderStandings() {
           ${standings.map((team, index) => `
             <tr class="${team.id === 'user1' ? 'my-team-row' : ''}">
               <td class="rank-cell">#${index + 1}</td>
-              <td>${team.name}</td>
+              <td>${escHtml(team.name)}</td>
               <td class="score-cell">${team.score.toFixed(1)}</td>
               <td>
                 <span class="status-badge ${team.complete ? 'complete' : 'incomplete'}">
@@ -887,7 +843,7 @@ if (elements.createLeagueBtn) {
             if (elements.leagueInfo) {
                 elements.leagueInfo.innerHTML = `
           <div class="league-badge">
-            <span class="league-name">${state.league.name}</span>
+            <span class="league-name">${escHtml(state.league.name)}</span>
             <span class="league-players">${state.teams.length}/12 Players</span>
           </div>
         `;

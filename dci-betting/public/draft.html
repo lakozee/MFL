@@ -986,6 +986,7 @@
         </div>
     </main>
 
+    <script src="/utils/escape.js"></script>
     <script src="/utils/avatar.js"></script>
     <script src="/api.js"></script>
     <script src="/nav.js"></script>
@@ -1226,8 +1227,9 @@
     }
 
     function avatarUrl(username, profileUrl) {
-        return (profileUrl && profileUrl !== '/default-avatar.png')
-            ? profileUrl
+        const safe = safeImageUrl(profileUrl);
+        return (safe && safe !== '/default-avatar.png')
+            ? safe
             : generateDefaultAvatar(username, 32);
     }
 
@@ -1270,12 +1272,12 @@
             const showKick = canKick && !isMe;
             return `
                 <li class="member-item">
-                    <img class="member-avatar" src="${avatarUrl(m.username, m.profile_picture_url)}" alt="${m.username}">
+                    <img class="member-avatar" src="${escHtml(avatarUrl(m.username, m.profile_picture_url))}" alt="${escHtml(m.username)}">
                     <div class="member-text">
-                        <div class="member-name">${m.username}</div>
-                        <div class="member-team">${m.team_name}</div>
+                        <div class="member-name">${escHtml(m.username)}</div>
+                        <div class="member-team">${escHtml(m.team_name)}</div>
                     </div>
-                    ${showKick ? `<button class="member-kick-btn" data-user-id="${m.user_id}" data-username="${m.username}">Kick</button>` : ''}
+                    ${showKick ? `<button class="member-kick-btn" data-user-id="${escHtml(m.user_id)}" data-username="${escHtml(m.username)}">Kick</button>` : ''}
                 </li>
             `;
         }).join('');
@@ -1490,10 +1492,10 @@
         list.innerHTML = players.map(p => `
             <li class="player-row">
                 <span class="conn-dot ${p.isConnected ? 'connected' : 'disconnected'}"></span>
-                <img class="member-avatar" src="${generateDefaultAvatar(p.username, 32)}" alt="${p.username}">
+                <img class="member-avatar" src="${escHtml(generateDefaultAvatar(p.username, 32))}" alt="${escHtml(p.username)}">
                 <div class="player-info">
-                    <div class="player-username">${p.username}${p.userId === S.currentUser.id ? ' (you)' : ''}</div>
-                    <div class="player-team">${p.teamName}</div>
+                    <div class="player-username">${escHtml(p.username)}${p.userId === S.currentUser.id ? ' (you)' : ''}</div>
+                    <div class="player-team">${escHtml(p.teamName)}</div>
                 </div>
                 <span class="ready-badge ${p.isReady ? 'ready' : 'waiting'}">${p.isReady ? '&#10003; Ready' : '... Waiting'}</span>
             </li>
@@ -1640,12 +1642,12 @@
             let cls = drafted ? 'drafted' : (sectionTaken ? 'section-taken' : (!isMyTurn ? 'not-my-turn' : ''));
             const extraCls = isMyPick ? ' my-pick' : '';
             return `
-                <div class="caption-card ${cls}${extraCls}" data-id="${c.id}">
+                <div class="caption-card ${cls}${extraCls}" data-id="${escHtml(c.id)}">
                     <div class="corps-bar" style="background:${c.color}"></div>
                     <div class="caption-corps">${c.corps}</div>
                     <div class="caption-section">${c.section}</div>
                     <div class="caption-score">${c.score.toFixed(1)}</div>
-                    ${drafted ? `<div class="caption-owner">${isMyPick ? 'Your pick' : drafted.username}</div>` : ''}
+                    ${drafted ? `<div class="caption-owner">${isMyPick ? 'Your pick' : escHtml(drafted.username)}</div>` : ''}
                     <span class="section-taken-label">Section filled</span>
                 </div>
             `;
@@ -1705,9 +1707,9 @@
             const c = getCaption(p.captionId);
             return `
                 <div class="pick-entry">
-                    <span class="pick-num">#${p.pickNumber + 1}</span>
-                    <span class="pick-user">${p.username}</span>
-                    <span class="pick-caption">${c ? captionLabel(c) : p.captionId}</span>
+                    <span class="pick-num">#${escHtml(Number(p.pickNumber) + 1)}</span>
+                    <span class="pick-user">${escHtml(p.username)}</span>
+                    <span class="pick-caption">${escHtml(c ? captionLabel(c) : p.captionId)}</span>
                 </div>
             `;
         }).join('');
@@ -1717,7 +1719,7 @@
         const body = document.getElementById('all-teams-body');
         body.innerHTML = Object.entries(S.allTeams).map(([userId, team]) => `
             <div class="team-block">
-                <div class="team-block-name">${team.teamName || team.username}</div>
+                <div class="team-block-name">${escHtml(team.teamName || team.username)}</div>
                 ${SECTIONS.map(section => {
                     const captionId = team.picks.find(id => {
                         const c = getCaption(id);
@@ -1796,7 +1798,7 @@
             // League rosters (shown first)
             document.getElementById('final-teams').innerHTML = Object.values(teams).map(t => `
                 <div class="card" style="margin:0">
-                    <div class="card-title">${t.teamName || t.username}</div>
+                    <div class="card-title">${escHtml(t.teamName || t.username)}</div>
                     ${SECTIONS.map(section => {
                         const captionId = t.picks.find(id => { const c = getCaption(id); return c && c.section === section; });
                         const c = captionId ? getCaption(captionId) : null;
@@ -1816,7 +1818,7 @@
             document.getElementById('standings-body').innerHTML = sorted.map((t, i) => `
                 <tr class="${i === 0 ? 'rank-1' : ''}">
                     <td>${i + 1}</td>
-                    <td>${t.teamName || t.username}</td>
+                    <td>${escHtml(t.teamName || t.username)}</td>
                     <td>${t.score.toFixed(1)}</td>
                 </tr>
             `).join('');
